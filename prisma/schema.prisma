@@ -1,0 +1,367 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id               String    @id @default(uuid())
+  email            String    @unique
+  name             String?
+  phone            String?
+  country          String?
+  state            String?
+  picture          String?
+  googleId         String?   @unique
+  password         String?
+  is_admin         Boolean   @default(false)
+  createdAt        DateTime  @default(now())
+  lastLogin        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  refreshToken     String?
+  verificationCode String?
+  verificationExp  DateTime?
+  isVerified       Boolean   @default(false)
+
+  addresses     Address[]
+  orders        Order[]
+  cart          Cart?
+  referrals     Referral[]
+  notifications Notification[]
+  payments      Payment[]
+  reviews       Review[]
+  wishlist      Wishlist?
+  Reference     Referral?      @relation("UserReference")
+  coupons       Coupon[]
+}
+
+model Address {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  type      String // e.g., "billing", "shipping"
+  line1     String
+  line2     String?
+  city      String
+  state     String
+  zip       String
+  country   String
+  isDefault Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  orders    Order[]
+}
+
+model Product {
+  id                String          @id @default(uuid())
+  slug              String          @unique
+  name              String
+  description       String?
+  shortDescription  String?         @map("short_description")
+  fullDescription   String?         @map("full_description")
+  sku               String?         @unique
+  price             Decimal
+  originalPrice     Decimal?        @map("original_price")
+  discountAmount    Decimal?        @map("discount_amount")
+  stockQuantity     Int             @default(0) @map("stock_quantity")
+  lowStockThreshold Int             @default(0) @map("low_stock_threshold")
+  weightKg          Decimal?        @map("weight_kg")
+  lengthCm          Decimal?        @map("length_cm")
+  widthCm           Decimal?        @map("width_cm")
+  heightCm          Decimal?        @map("height_cm")
+  warrantyMonths    Int             @default(0) @map("warranty_months")
+  isWarrantyCovered Boolean         @default(false) @map("is_warranty_covered")
+  isActive          Boolean         @default(true) @map("is_active")
+  featureOnHomepage Boolean         @default(false) @map("feature_on_homepage")
+  isTrending        Boolean         @default(false) @map("is_trending")
+  isBestSelling     Boolean         @default(false) @map("is_best_selling")
+  features          Json?
+  specifications    Json?
+  categoryId        String?
+  category          Category?       @relation(fields: [categoryId], references: [id])
+  brandId           String?
+  brand             Brand?          @relation(fields: [brandId], references: [id])
+  images            ProductImage[]
+  colors            Color[]
+  storageOptions    StorageOption[]
+  tags              Tag[]
+  reviews           Review[]
+  orderItems        OrderItem[]
+  cartItems         CartItem[]
+  wishlistItems     WishlistItem[]
+  coupons           Coupon[]
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+}
+
+model ProductImage {
+  id        String   @id @default(uuid())
+  productId String
+  product   Product  @relation(fields: [productId], references: [id])
+  url       String
+  publicId  String?  @map("public_id")
+  isPrimary Boolean  @default(false) @map("is_primary")
+  sortOrder Int      @default(0) @map("sort_order")
+  createdAt DateTime @default(now())
+}
+
+model Category {
+  id           String    @id @default(uuid())
+  name         String    @unique
+  slug         String    @unique
+  description  String?
+  icon         String?
+  iconPublicId String?   @map("icon_public_id")
+  isActive     Boolean   @default(true) @map("is_active")
+  products     Product[]
+  coupons      Coupon[]
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
+model Brand {
+  id       String    @id @default(uuid())
+  name     String    @unique
+  slug     String    @unique
+  products Product[]
+}
+
+model Color {
+  id       String    @id @default(uuid())
+  name     String
+  value    String // Hex code
+  products Product[]
+}
+
+model StorageOption {
+  id       String    @id @default(uuid())
+  capacity String
+  price    Decimal
+  products Product[]
+}
+
+model Tag {
+  id       String    @id @default(uuid())
+  name     String    @unique
+  products Product[]
+}
+
+model Order {
+  id             String      @id @default(uuid())
+  userId         String?
+  user           User?       @relation(fields: [userId], references: [id])
+  addressId      String?
+  address        Address?    @relation(fields: [addressId], references: [id])
+  total          Decimal
+  subtotal       Decimal?
+  taxAmount      Decimal?    @default(0)
+  deliveryFee    Decimal?    @default(0)
+  status         String      @default("PENDING") // PENDING, PROCESSING, SHIPPED, DELIVERED, CANCELLED
+  paymentStatus  String      @default("PENDING") // PENDING, PAID, FAILED, REFUNDED
+  deliveryStatus String?     @default("PENDING") // PENDING, PROCESSING, SHIPPED, DELIVERED, FAILED
+  deliveryType   String?
+  deliveryDate   DateTime?
+  shippingDate   DateTime?
+  deliveredAt    DateTime?
+  trackingCode   String?
+  items          OrderItem[]
+  payment        Payment?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+}
+
+model OrderItem {
+  id        String  @id @default(uuid())
+  orderId   String
+  order     Order   @relation(fields: [orderId], references: [id])
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+  quantity  Int
+  price     Decimal
+  metadata  Json?
+}
+
+model Cart {
+  id        String     @id @default(uuid())
+  userId    String?    @unique // Can be null for guest carts, but typical implementation links to user or session
+  user      User?      @relation(fields: [userId], references: [id])
+  items     CartItem[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+}
+
+model CartItem {
+  id        String  @id @default(uuid())
+  cartId    String
+  cart      Cart    @relation(fields: [cartId], references: [id])
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+  quantity  Int
+  metadata  Json?
+}
+
+model Payment {
+  id            String   @id @default(uuid())
+  orderId       String   @unique
+  order         Order    @relation(fields: [orderId], references: [id])
+  userId        String
+  user          User     @relation(fields: [userId], references: [id])
+  amount        Decimal
+  method        String? // CARD, BANK_TRANSFER, etc.
+  reference     String?  @unique
+  transactionId String?
+  channel       String?
+  metadata      Json?
+  status        String   @default("PENDING") // PENDING, SUCCESS, FAILED
+  createdAt     DateTime @default(now())
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  title     String
+  message   String
+  read      Boolean  @default(false)
+  type      String?
+  createdAt DateTime @default(now())
+}
+
+model Referral {
+  id             String   @id @default(uuid())
+  referrerId     String
+  referrer       User     @relation(fields: [referrerId], references: [id])
+  code           String   @unique
+  referredUserId String?  @unique
+  referredUser   User?    @relation("UserReference", fields: [referredUserId], references: [id])
+  // complex logic for credits/commissions might need more fields or separate models
+  createdAt      DateTime @default(now())
+}
+
+model Coupon {
+  id                 String    @id @default(uuid())
+  code               String    @unique
+  description        String?
+  discountType       String    @default("percentage") @map("discount_type") // percentage, fixed
+  discountValue      Decimal   @map("discount_value")
+  maximumDiscount    Decimal?  @map("maximum_discount")
+  validFrom          DateTime? @map("valid_from")
+  validUntil         DateTime? @map("valid_until")
+  usageLimit         Int?      @map("usage_limit")
+  usageLimitPerUser  Int       @default(1) @map("usage_limit_per_user")
+  minimumOrderAmount Decimal   @default(0) @map("minimum_order_amount")
+  applicableToAll    Boolean   @default(true) @map("applicable_to_all")
+  isActive           Boolean   @default(true) @map("is_active")
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  applicableProducts   Product[]
+  applicableCategories Category[]
+  assignedUsers        User[]
+}
+
+model Ad {
+  id                 String    @id @default(uuid())
+  adName             String    @map("ad_name")
+  adMedia            String?   @map("ad_media")
+  customText         String?   @map("custom_text")
+  customTextColor    String?   @map("custom_text_color")
+  customTextPosition String?   @map("custom_text_position")
+  showButton         Boolean   @default(false) @map("show_button")
+  buttonLabel        String?   @map("button_label")
+  buttonColor        String?   @map("button_color")
+  buttonTextColor    String?   @map("button_text_color")
+  buttonAlignment    String?   @map("button_alignment")
+  buttonLink         String?   @map("button_link")
+  displayLocation    String?   @map("display_location")
+  displayPosition    String?   @map("display_position")
+  startDate          DateTime? @map("start_date")
+  endDate            DateTime? @map("end_date")
+  isPublished        Boolean   @default(false) @map("is_published")
+  displayOrder       Int?      @default(0) @map("display_order")
+  publicId           String?   @map("public_id")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
+}
+
+model Review {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  productId String
+  product   Product  @relation(fields: [productId], references: [id])
+  rating    Int
+  comment   String?
+  createdAt DateTime @default(now())
+}
+
+model Wishlist {
+  id        String         @id @default(uuid())
+  userId    String         @unique
+  user      User           @relation(fields: [userId], references: [id])
+  items     WishlistItem[]
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+}
+
+model WishlistItem {
+  id         String   @id @default(uuid())
+  wishlistId String
+  wishlist   Wishlist @relation(fields: [wishlistId], references: [id])
+  productId  String
+  product    Product  @relation(fields: [productId], references: [id])
+  createdAt  DateTime @default(now())
+}
+
+model StoreSettings {
+  id    String @id @default(uuid())
+  key   String @unique
+  value String
+}
+
+model Faq {
+  id        String   @id @default(uuid())
+  question  String
+  answer    String
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+}
+
+model ContactRequest {
+  id        String   @id @default(uuid())
+  name      String
+  email     String
+  subject   String
+  message   String
+  status    String   @default("PENDING") // PENDING, RESOLVED
+  createdAt DateTime @default(now())
+}
+
+model StoreLocation {
+  id        String   @id @default(uuid())
+  name      String
+  address   String
+  phone     String?
+  email     String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model DeliveryMethod {
+  id            String   @id @default(uuid())
+  name          String // e.g., "Pick from Store", "Standard Shipping"
+  description   String?
+  price         Decimal  @default(0)
+  estimatedDays String? // e.g., "3-5 days" or "Monday - Saturday"
+  type          String // "PICKUP", "DELIVERY"
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
