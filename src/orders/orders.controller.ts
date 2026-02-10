@@ -8,6 +8,7 @@ import {
   Req,
 } from '@nestjs/common';
 import { OrdersService } from './orders.service';
+import { CreateOrderDto } from './dto/create-order.dto';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 
@@ -33,7 +34,7 @@ export class OrdersController {
   // Checkout endpoint usually creates the order
   @Post('checkout')
   @ApiOperation({ summary: 'Checkout / Create Order' })
-  create(@Req() req, @Body() body: any) {
+  create(@Req() req, @Body() body: CreateOrderDto) {
     return this.ordersService.create(req.user.sub, body);
   }
 }

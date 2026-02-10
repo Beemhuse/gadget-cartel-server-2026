@@ -52,4 +52,22 @@ export class DashboardController {
   getCustomerGrowthChart() {
     return this.dashboardService.getCustomerGrowthChart();
   }
+
+  @Get('admin/advanced-analytics')
+  @ApiOperation({ summary: 'Get admin advanced analytics' })
+  getAdminAdvancedAnalytics() {
+    return this.dashboardService.getAdminAdvancedAnalytics();
+  }
+
+  @Get('admin/revenue-chart')
+  @ApiOperation({ summary: 'Get admin revenue chart' })
+  getAdminRevenueChart(@Query() query: any) {
+    return this.dashboardService.getAdminRevenueChart(query);
+  }
+
+  @Get('admin/best-sellers')
+  @ApiOperation({ summary: 'Get admin best sellers' })
+  getAdminBestSellers(@Query() query: any) {
+    return this.dashboardService.getAdminBestSellers(query);
+  }
 }

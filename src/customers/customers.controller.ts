@@ -83,19 +83,157 @@ export class CustomersController {
     });
   }
 
-  @Get('store-locations')
-  @ApiOperation({ summary: 'Get store locations' })
-  async getStoreLocations() {
-    return this.prisma.storeLocation.findMany({
-      where: { isActive: true },
+
+  // --- Admin Delivery Methods ---
+
+  @Get('admin/delivery-methods')
+  @ApiOperation({ summary: 'List delivery methods (Admin)' })
+  @UseGuards(AdminGuard)
+  async listDeliveryMethods() {
+    return this.prisma.deliveryMethod.findMany({
+      orderBy: { createdAt: 'desc' },
     });
   }
 
-  @Get('delivery-methods')
-  @ApiOperation({ summary: 'Get delivery methods' })
-  async getDeliveryMethods() {
-    return this.prisma.deliveryMethod.findMany({
-      where: { isActive: true },
+  @Post('admin/delivery-methods')
+  @ApiOperation({ summary: 'Create delivery method (Admin)' })
+  @UseGuards(AdminGuard)
+  async createDeliveryMethod(@Body() body: any) {
+    return this.prisma.deliveryMethod.create({
+      data: {
+        name: body.name,
+        description: body.description || null,
+        price: body.price ?? 0,
+        estimatedDays: body.estimatedDays || body.estimated_days || null,
+        type: body.type,
+        isActive: body.isActive ?? true,
+      },
+    });
+  }
+
+  @Patch('admin/delivery-methods/:id')
+  @ApiOperation({ summary: 'Update delivery method (Admin)' })
+  @UseGuards(AdminGuard)
+  async updateDeliveryMethod(@Param('id') id: string, @Body() body: any) {
+    return this.prisma.deliveryMethod.update({
+      where: { id },
+      data: {
+        name: body.name,
+        description: body.description,
+        price: body.price,
+        estimatedDays: body.estimatedDays || body.estimated_days,
+        type: body.type,
+        isActive: body.isActive,
+      },
+    });
+  }
+
+  @Delete('admin/delivery-methods/:id')
+  @ApiOperation({ summary: 'Delete delivery method (Admin)' })
+  @UseGuards(AdminGuard)
+  async deleteDeliveryMethod(@Param('id') id: string) {
+    return this.prisma.deliveryMethod.delete({
+      where: { id },
+    });
+  }
+
+  @Post('shipping/quote')
+  @ApiOperation({ summary: 'Get shipping quote' })
+  async getShippingQuote(@Req() req, @Body() body: any) {
+    return this.ordersService.quoteShipping(req.user.sub, body);
+  }
+
+  // --- Admin Shipping Zones ---
+
+  @Get('admin/shipping-zones')
+  @ApiOperation({ summary: 'List shipping zones (Admin)' })
+  @UseGuards(AdminGuard)
+  async listShippingZones() {
+    return this.prisma.shippingZone.findMany({
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  @Post('admin/shipping-zones')
+  @ApiOperation({ summary: 'Create shipping zone (Admin)' })
+  @UseGuards(AdminGuard)
+  async createShippingZone(@Body() body: any) {
+    return this.prisma.shippingZone.create({
+      data: {
+        name: body.name,
+        state: body.state,
+        city: body.city || null,
+        country: body.country || null,
+        isActive: body.isActive ?? true,
+      },
+    });
+  }
+
+  @Patch('admin/shipping-zones/:id')
+  @ApiOperation({ summary: 'Update shipping zone (Admin)' })
+  @UseGuards(AdminGuard)
+  async updateShippingZone(@Param('id') id: string, @Body() body: any) {
+    return this.prisma.shippingZone.update({
+      where: { id },
+      data: body,
+    });
+  }
+
+  @Delete('admin/shipping-zones/:id')
+  @ApiOperation({ summary: 'Delete shipping zone (Admin)' })
+  @UseGuards(AdminGuard)
+  async deleteShippingZone(@Param('id') id: string) {
+    return this.prisma.shippingZone.delete({
+      where: { id },
+    });
+  }
+
+  // --- Admin Shipping Prices ---
+
+  @Get('admin/shipping-prices')
+  @ApiOperation({ summary: 'List shipping prices (Admin)' })
+  @UseGuards(AdminGuard)
+  async listShippingPrices() {
+    return this.prisma.shippingPrice.findMany({
+      include: {
+        zone: true,
+        deliveryMethod: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  @Post('admin/shipping-prices')
+  @ApiOperation({ summary: 'Create shipping price (Admin)' })
+  @UseGuards(AdminGuard)
+  async createShippingPrice(@Body() body: any) {
+    return this.prisma.shippingPrice.create({
+      data: {
+        zoneId: body.zoneId || body.zone_id,
+        deliveryMethodId: body.deliveryMethodId || body.delivery_method_id,
+        price: body.price ?? 0,
+        freeOver: body.freeOver ?? body.free_over ?? null,
+        isActive: body.isActive ?? true,
+      },
+    });
+  }
+
+  @Patch('admin/shipping-prices/:id')
+  @ApiOperation({ summary: 'Update shipping price (Admin)' })
+  @UseGuards(AdminGuard)
+  async updateShippingPrice(@Param('id') id: string, @Body() body: any) {
+    return this.prisma.shippingPrice.update({
+      where: { id },
+      data: body,
+    });
+  }
+
+  @Delete('admin/shipping-prices/:id')
+  @ApiOperation({ summary: 'Delete shipping price (Admin)' })
+  @UseGuards(AdminGuard)
+  async deleteShippingPrice(@Param('id') id: string) {
+    return this.prisma.shippingPrice.delete({
+      where: { id },
     });
   }
 

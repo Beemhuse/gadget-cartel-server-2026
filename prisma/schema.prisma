@@ -39,6 +39,7 @@ model User {
   wishlist      Wishlist?
   Reference     Referral?      @relation("UserReference")
   coupons       Coupon[]
+  couponUsages  CouponUsage[]
 }
 
 model Address {
@@ -153,18 +154,18 @@ model Tag {
 }
 
 model Order {
-  id             String      @id @default(uuid())
+  id             String        @id @default(uuid())
   userId         String?
-  user           User?       @relation(fields: [userId], references: [id])
+  user           User?         @relation(fields: [userId], references: [id])
   addressId      String?
-  address        Address?    @relation(fields: [addressId], references: [id])
+  address        Address?      @relation(fields: [addressId], references: [id])
   total          Decimal
   subtotal       Decimal?
-  taxAmount      Decimal?    @default(0)
-  deliveryFee    Decimal?    @default(0)
-  status         String      @default("PENDING") // PENDING, PROCESSING, SHIPPED, DELIVERED, CANCELLED
-  paymentStatus  String      @default("PENDING") // PENDING, PAID, FAILED, REFUNDED
-  deliveryStatus String?     @default("PENDING") // PENDING, PROCESSING, SHIPPED, DELIVERED, FAILED
+  taxAmount      Decimal?      @default(0)
+  deliveryFee    Decimal?      @default(0)
+  status         String        @default("PENDING") // PENDING, PROCESSING, SHIPPED, DELIVERED, CANCELLED
+  paymentStatus  String        @default("PENDING") // PENDING, PAID, FAILED, REFUNDED
+  deliveryStatus String?       @default("PENDING") // PENDING, PROCESSING, SHIPPED, DELIVERED, FAILED
   deliveryType   String?
   deliveryDate   DateTime?
   shippingDate   DateTime?
@@ -172,8 +173,9 @@ model Order {
   trackingCode   String?
   items          OrderItem[]
   payment        Payment?
-  createdAt      DateTime    @default(now())
-  updatedAt      DateTime    @updatedAt
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  couponUsages   CouponUsage[]
 }
 
 model OrderItem {
@@ -258,12 +260,30 @@ model Coupon {
   minimumOrderAmount Decimal   @default(0) @map("minimum_order_amount")
   applicableToAll    Boolean   @default(true) @map("applicable_to_all")
   isActive           Boolean   @default(true) @map("is_active")
+  usageCount         Int       @default(0) @map("usage_count")
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
 
   applicableProducts   Product[]
   applicableCategories Category[]
   assignedUsers        User[]
+  couponUsages         CouponUsage[]
+}
+
+model CouponUsage {
+  id        String   @id @default(uuid())
+  couponId  String
+  userId    String?
+  orderId   String?
+  createdAt DateTime @default(now())
+
+  coupon Coupon @relation(fields: [couponId], references: [id])
+  user   User?  @relation(fields: [userId], references: [id])
+  order  Order? @relation(fields: [orderId], references: [id])
+
+  @@unique([couponId, orderId])
+  @@index([couponId])
+  @@index([userId])
 }
 
 model Ad {
@@ -364,4 +384,36 @@ model DeliveryMethod {
   isActive      Boolean  @default(true)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+
+  shippingPrices ShippingPrice[]
+}
+
+model ShippingZone {
+  id        String   @id @default(uuid())
+  name      String
+  city      String?
+  state     String
+  country   String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  prices ShippingPrice[]
+
+  @@index([state, city])
+}
+
+model ShippingPrice {
+  id               String         @id @default(uuid())
+  zoneId           String
+  zone             ShippingZone   @relation(fields: [zoneId], references: [id])
+  deliveryMethodId String
+  deliveryMethod   DeliveryMethod @relation(fields: [deliveryMethodId], references: [id])
+  price            Decimal        @default(0)
+  freeOver         Decimal?       @map("free_over")
+  isActive         Boolean        @default(true)
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  @@unique([zoneId, deliveryMethodId])
 }

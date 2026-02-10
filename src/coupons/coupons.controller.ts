@@ -69,6 +69,14 @@ export class CouponsController {
     return this.couponsService.update(id, body);
   }
 
+  @Patch('admin/:id/status')
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'), AdminGuard)
+  @ApiOperation({ summary: 'Update coupon status (Admin)' })
+  updateStatus(@Param('id') id: string, @Body() body: { isActive: boolean }) {
+    return this.couponsService.updateStatus(id, body.isActive);
+  }
+
   @Delete('admin/:id')
   @ApiBearerAuth()
   @UseGuards(AuthGuard('jwt'), AdminGuard)

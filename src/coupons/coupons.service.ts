@@ -1,4 +1,5 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateCouponDto, UpdateCouponDto } from './dto/coupons.dto';
 
@@ -112,15 +113,39 @@ export class CouponsService {
     });
   }
 
-  async delete(id: string) {
+  async updateStatus(id: string, isActive: boolean) {
     await this.findOne(id);
-    return this.prisma.coupon.delete({
+    return this.prisma.coupon.update({
       where: { id },
+      data: { isActive },
     });
   }
 
+  async delete(id: string) {
+    await this.findOne(id);
+    try {
+      return await this.prisma.$transaction(async (tx) => {
+        // Delete usages first to avoid FK constraint error
+        await tx.couponUsage.deleteMany({
+          where: { couponId: id },
+        });
+        return tx.coupon.delete({
+          where: { id },
+        });
+      });
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        (error.code === 'P2003' || error.code === 'P2014')
+      ) {
+        throw new BadRequestException('Cannot delete used coupon');
+      }
+      throw error;
+    }
+  }
+
   async validate(code: string) {
-    const coupon = await this.prisma.coupon.findUnique({
+    const coupon: any = await this.prisma.coupon.findUnique({
       where: { code },
       include: {
         applicableProducts: true,
@@ -139,6 +164,30 @@ export class CouponsService {
 
     if (coupon.validFrom && coupon.validFrom > new Date()) {
       return { valid: false, message: 'Coupon not yet active' };
+    }
+
+    if (coupon.usageLimit && coupon.usageLimit > 0) {
+      const usageCount = await this.prisma.couponUsage.count({
+        where: { couponId: coupon.id },
+      });
+
+      if (usageCount > coupon.usageCount) {
+        await this.prisma.coupon.update({
+          where: { id: coupon.id },
+          data: { usageCount } as any,
+        });
+      }
+
+      if (usageCount >= coupon.usageLimit) {
+        const isExpired = coupon.validUntil && coupon.validUntil < new Date();
+        if (!isExpired && coupon.isActive) {
+          await this.prisma.coupon.update({
+            where: { id: coupon.id },
+            data: { isActive: false },
+          });
+        }
+        return { valid: false, message: 'Coupon usage limit reached' };
+      }
     }
 
     return { valid: true, coupon };
