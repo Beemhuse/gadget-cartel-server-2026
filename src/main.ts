@@ -10,8 +10,13 @@ async function bootstrap() {
   const configService = app.get(ConfigService);
 
   // Enable CORS
+  const allowedOrigins = [
+    configService.get('FRONTEND_URL'),
+    'https://gadget-cartel-2026.vercel.app',
+  ].filter(Boolean); // removes undefined/null
+
   app.enableCors({
-    origin: configService.get('FRONTEND_URL') || 'http://localhost:3000',
+    origin: allowedOrigins,
     credentials: true,
   });
 
@@ -21,8 +26,8 @@ async function bootstrap() {
 
   // Swagger Config
   const config = new DocumentBuilder()
-    .setTitle('Nanotech API')
-    .setDescription('The Nanotech API description')
+    .setTitle('Gadget Cartel API')
+    .setDescription('The Gadget Cartel API description')
     .setVersion('1.0')
     .addBearerAuth()
     .build();
