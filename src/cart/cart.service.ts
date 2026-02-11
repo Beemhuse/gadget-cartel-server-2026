@@ -113,7 +113,6 @@ export class CartService {
     data: { quantity?: number; metadata?: any },
   ) {
     const cart = await this.getCart(userId);
-    console.log(cartItemId, 'cartItemId');
     let item = await this.prisma.cartItem.findFirst({
       where: { id: cartItemId, cartId: cart.id },
     });

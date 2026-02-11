@@ -392,7 +392,7 @@ export class OrdersService {
             status: true,
             createdAt: true,
           },
-        }
+        },
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -438,19 +438,19 @@ export class OrdersService {
           },
           address: true,
           payment: {
-          select: {
-            id: true,
-            orderId: true,
-            userId: true,
-            amount: true,
-            method: true,
-            reference: true,
-            transactionId: true,
-            channel: true,
-            status: true,
-            createdAt: true,
+            select: {
+              id: true,
+              orderId: true,
+              userId: true,
+              amount: true,
+              method: true,
+              reference: true,
+              transactionId: true,
+              channel: true,
+              status: true,
+              createdAt: true,
+            },
           },
-        }
         },
         orderBy: { createdAt: 'desc' },
         skip,
@@ -513,7 +513,7 @@ export class OrdersService {
             status: true,
             createdAt: true,
           },
-        }
+        },
       },
     });
     if (!order) return null;
@@ -554,7 +554,7 @@ export class OrdersService {
             status: true,
             createdAt: true,
           },
-        }
+        },
       },
     });
     if (!order) return null;
@@ -605,7 +605,7 @@ export class OrdersService {
             status: true,
             createdAt: true,
           },
-        }
+        },
       },
     });
     if (!order) return null;
@@ -613,7 +613,12 @@ export class OrdersService {
   }
 
   async create(userId: string, data: CreateOrderDto) {
-    const { billing_address_id, delivery_type, coupon_code } = data;
+    const {
+      billing_address_id,
+      delivery_type,
+      coupon_code,
+      store_location_id,
+    } = data;
 
     // 1. Get user's cart
     const cart = await this.prisma.cart.findUnique({
@@ -631,12 +636,67 @@ export class OrdersService {
       throw new Error('Cart is empty');
     }
 
-    const billingAddress = await this.prisma.address.findFirst({
-      where: { id: billing_address_id, userId },
-    });
+    const normalizedDeliveryType = String(delivery_type || '').toLowerCase();
+    const isPickup =
+      normalizedDeliveryType === 'pick_up_from_store' ||
+      normalizedDeliveryType === 'pickup';
 
-    if (!billingAddress) {
-      throw new Error('Billing address not found');
+    let billingAddress: Awaited<
+      ReturnType<typeof this.prisma.address.findFirst>
+    > | null = null;
+
+    if (isPickup) {
+      if (!store_location_id) {
+        throw new Error('Store location is required for pickup');
+      }
+
+      const storeLocation = await this.prisma.storeLocation.findFirst({
+        where: { id: store_location_id, isActive: true },
+      });
+
+      if (!storeLocation) {
+        throw new Error('Store location not found');
+      }
+
+      const pickupLine1 =
+        storeLocation.address?.trim() ||
+        storeLocation.name?.trim() ||
+        'Store pickup';
+
+      billingAddress = await this.prisma.address.findFirst({
+        where: {
+          userId,
+          type: 'pick_up_from_store',
+          line1: pickupLine1,
+        },
+      });
+
+      if (!billingAddress) {
+        billingAddress = await this.prisma.address.create({
+          data: {
+            userId,
+            line1: pickupLine1,
+            line2: storeLocation.name || null,
+            city: '',
+            state: '',
+            zip: '',
+            country: 'Nigeria',
+            type: 'pick_up_from_store',
+          },
+        });
+      }
+    } else {
+      if (!billing_address_id) {
+        throw new Error('Billing address is required');
+      }
+
+      billingAddress = await this.prisma.address.findFirst({
+        where: { id: billing_address_id, userId },
+      });
+
+      if (!billingAddress) {
+        throw new Error('Billing address not found');
+      }
     }
 
     // 2. Calculate totals
@@ -715,7 +775,6 @@ export class OrdersService {
     const taxAmount = 0;
     const orderTotal = Math.max(subtotal - discountAmount, 0) + taxAmount;
 
-    const normalizedDeliveryType = String(delivery_type || '').toLowerCase();
     const zoneId = data.zone_id;
     if (normalizedDeliveryType === 'home_delivery' && !zoneId) {
       throw new Error('Shipping zone is required for home_delivery');
@@ -736,7 +795,7 @@ export class OrdersService {
     const order = await this.prisma.order.create({
       data: {
         userId,
-        addressId: billing_address_id,
+        addressId: billingAddress.id,
         deliveryType: delivery_type,
         subtotal,
         taxAmount,
@@ -813,19 +872,19 @@ export class OrdersService {
           },
           address: true,
           payment: {
-          select: {
-            id: true,
-            orderId: true,
-            userId: true,
-            amount: true,
-            method: true,
-            reference: true,
-            transactionId: true,
-            channel: true,
-            status: true,
-            createdAt: true,
+            select: {
+              id: true,
+              orderId: true,
+              userId: true,
+              amount: true,
+              method: true,
+              reference: true,
+              transactionId: true,
+              channel: true,
+              status: true,
+              createdAt: true,
+            },
           },
-        }
         },
         orderBy: { createdAt: 'desc' },
         skip,
@@ -864,19 +923,19 @@ export class OrdersService {
           },
           address: true,
           payment: {
-          select: {
-            id: true,
-            orderId: true,
-            userId: true,
-            amount: true,
-            method: true,
-            reference: true,
-            transactionId: true,
-            channel: true,
-            status: true,
-            createdAt: true,
+            select: {
+              id: true,
+              orderId: true,
+              userId: true,
+              amount: true,
+              method: true,
+              reference: true,
+              transactionId: true,
+              channel: true,
+              status: true,
+              createdAt: true,
+            },
           },
-        }
         },
         orderBy: { createdAt: 'desc' },
         skip,
@@ -933,7 +992,7 @@ export class OrdersService {
             status: true,
             createdAt: true,
           },
-        }
+        },
       },
     });
 
@@ -1046,6 +1105,23 @@ export class OrdersService {
       order_total: number;
     },
   ) {
+    const normalizedDeliveryType = String(
+      data.delivery_type || '',
+    ).toLowerCase();
+    if (
+      normalizedDeliveryType === 'pick_up_from_store' ||
+      normalizedDeliveryType === 'pickup'
+    ) {
+      return {
+        shippingFee: 0,
+        basePrice: 0,
+        freeOver: null,
+        zoneId: null,
+        zoneName: null,
+        deliveryMethodId: data.delivery_method_id ?? null,
+      };
+    }
+
     const addressId = data.address_id;
     if (!addressId) {
       throw new Error('Address is required');
@@ -1206,4 +1282,3 @@ export class OrdersService {
     });
   }
 }
-
