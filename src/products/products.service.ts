@@ -45,6 +45,40 @@ export class ProductsService {
     return { results, count };
   }
 
+  async findTrending(query: { limit?: string | number }) {
+    const rawLimit =
+      typeof query?.limit === 'string' || typeof query?.limit === 'number'
+        ? Number(query.limit)
+        : 10;
+    const limit = Number.isFinite(rawLimit) && rawLimit > 0 ? rawLimit : 10;
+
+    const aggregates = await this.prisma.orderItem.groupBy({
+      by: ['productId'],
+      _sum: { quantity: true },
+      orderBy: { _sum: { quantity: 'desc' } },
+      take: limit,
+    });
+
+    const productIds = aggregates.map((entry) => entry.productId);
+    if (productIds.length === 0) {
+      return { results: [], count: 0 };
+    }
+
+    const products = await this.prisma.product.findMany({
+      where: { id: { in: productIds }, isActive: true },
+      include: { images: true, category: true, brand: true },
+    });
+
+    const productById = new Map(
+      products.map((product) => [product.id, product]),
+    );
+    const ordered = aggregates
+      .map((entry) => productById.get(entry.productId))
+      .filter(Boolean);
+
+    return { results: ordered, count: ordered.length };
+  }
+
   async findOne(slugOrId: string) {
     const product = await this.prisma.product.findFirst({
       where: { OR: [{ id: slugOrId }, { slug: slugOrId }] },
@@ -56,7 +90,7 @@ export class ProductsService {
         storageOptions: true,
         tags: true,
         reviews: {
-          include: { user: { select: { name: true, picture: true } } },
+          include: { user: { select: { name: true, googlePic: true } } },
           orderBy: { createdAt: 'desc' },
         },
       },

@@ -8,7 +8,19 @@ export class PaymentsService {
   async findAll(userId: string) {
     return this.prisma.payment.findMany({
       where: { userId },
-      include: { order: true },
+      select: {
+        id: true,
+        orderId: true,
+        userId: true,
+        amount: true,
+        method: true,
+        reference: true,
+        transactionId: true,
+        channel: true,
+        status: true,
+        createdAt: true,
+        order: true,
+      },
       orderBy: { createdAt: 'desc' },
     });
   }
@@ -20,10 +32,28 @@ export class PaymentsService {
 
     const [results, count] = await Promise.all([
       this.prisma.payment.findMany({
-        include: {
+        select: {
+          id: true,
+          orderId: true,
+          userId: true,
+          amount: true,
+          method: true,
+          reference: true,
+          transactionId: true,
+          channel: true,
+          status: true,
+          createdAt: true,
           order: {
             include: {
-              user: true,
+              user: {
+                select: {
+                  id: true,
+                  email: true,
+                  name: true,
+                  phone: true,
+                  is_admin: true,
+                },
+              },
             },
           },
         },

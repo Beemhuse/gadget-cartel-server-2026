@@ -1,3 +1,4 @@
+// auth.module.ts
 import { Module } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
@@ -11,18 +12,19 @@ import { PassportModule } from '@nestjs/passport';
 @Module({
   imports: [
     PrismaModule,
-    PassportModule,
+    PassportModule.register({ defaultStrategy: 'jwt' }), // Added default strategy
+    ConfigModule, 
     JwtModule.registerAsync({
       imports: [ConfigModule],
+      inject: [ConfigService],
       useFactory: async (configService: ConfigService) => ({
-        secret: configService.get<string>('JWT_SECRET'),
+        secret: configService.getOrThrow<string>('JWT_SECRET'), // Use getOrThrow for safety
         signOptions: { expiresIn: '7d' },
       }),
-      inject: [ConfigService],
     }),
   ],
   controllers: [AuthController],
   providers: [AuthService, GoogleStrategy, JwtStrategy],
-  exports: [AuthService],
+  exports: [AuthService, JwtModule], // Export JwtModule if other modules need to verify tokens
 })
 export class AuthModule {}

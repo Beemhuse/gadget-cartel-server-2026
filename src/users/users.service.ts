@@ -8,7 +8,19 @@ export class UsersService {
   async findOne(id: string) {
     return this.prisma.user.findUnique({
       where: { id },
-      include: {
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        phone: true,
+        country: true,
+        state: true,
+        googlePic: true,
+        googleId: true,
+        is_admin: true,
+        createdAt: true,
+        lastLogin: true,
+        isVerified: true,
         addresses: true,
       },
     });
@@ -23,7 +35,19 @@ export class UsersService {
       this.prisma.user.findMany({
         skip,
         take,
-        include: {
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          phone: true,
+          country: true,
+          state: true,
+          googlePic: true,
+          googleId: true,
+          is_admin: true,
+          createdAt: true,
+          lastLogin: true,
+          isVerified: true,
           addresses: true,
         },
         orderBy: { createdAt: 'desc' },
@@ -49,7 +73,7 @@ export class UsersService {
         phone: true,
         country: true,
         state: true,
-        picture: true,
+        googlePic: true,
         createdAt: true,
         lastLogin: true,
         isVerified: true,
@@ -87,20 +111,12 @@ export class UsersService {
     }, 0);
 
     const deliveredCount = orders.filter((order) => {
-      const status = (
-        order.deliveryStatus ||
-        order.status ||
-        ''
-      ).toLowerCase();
+      const status = (order.deliveryStatus || order.status || '').toLowerCase();
       return status === 'delivered';
     }).length;
 
     const pendingCount = orders.filter((order) => {
-      const status = (
-        order.deliveryStatus ||
-        order.status ||
-        ''
-      ).toLowerCase();
+      const status = (order.deliveryStatus || order.status || '').toLowerCase();
       if (!status) return true;
       if (status === 'delivered') return false;
       if (status === 'cancelled' || status === 'failed') return false;
@@ -117,9 +133,10 @@ export class UsersService {
         phone_number: user.phone,
         country: user.country,
         state: user.state,
-        picture: user.picture,
-        image: user.picture,
-        avatar: user.picture,
+        googlePic: user.googlePic,
+        picture: user.googlePic,
+        image: user.googlePic,
+        avatar: user.googlePic,
         createdAt: user.createdAt,
         created_at: user.createdAt,
         lastLogin: user.lastLogin,

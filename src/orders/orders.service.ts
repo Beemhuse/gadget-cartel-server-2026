@@ -379,7 +379,20 @@ export class OrdersService {
           },
         },
         address: true,
-        payment: true,
+        payment: {
+          select: {
+            id: true,
+            orderId: true,
+            userId: true,
+            amount: true,
+            method: true,
+            reference: true,
+            transactionId: true,
+            channel: true,
+            status: true,
+            createdAt: true,
+          },
+        }
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -424,7 +437,20 @@ export class OrdersService {
             },
           },
           address: true,
-          payment: true,
+          payment: {
+          select: {
+            id: true,
+            orderId: true,
+            userId: true,
+            amount: true,
+            method: true,
+            reference: true,
+            transactionId: true,
+            channel: true,
+            status: true,
+            createdAt: true,
+          },
+        }
         },
         orderBy: { createdAt: 'desc' },
         skip,
@@ -456,6 +482,7 @@ export class OrdersService {
             name: true,
             email: true,
             phone: true,
+            googlePic: true,
           },
         },
         items: {
@@ -473,7 +500,20 @@ export class OrdersService {
           },
         },
         address: true,
-        payment: true,
+        payment: {
+          select: {
+            id: true,
+            orderId: true,
+            userId: true,
+            amount: true,
+            method: true,
+            reference: true,
+            transactionId: true,
+            channel: true,
+            status: true,
+            createdAt: true,
+          },
+        }
       },
     });
     if (!order) return null;
@@ -501,7 +541,20 @@ export class OrdersService {
           },
         },
         address: true,
-        payment: true,
+        payment: {
+          select: {
+            id: true,
+            orderId: true,
+            userId: true,
+            amount: true,
+            method: true,
+            reference: true,
+            transactionId: true,
+            channel: true,
+            status: true,
+            createdAt: true,
+          },
+        }
       },
     });
     if (!order) return null;
@@ -520,6 +573,7 @@ export class OrdersService {
             name: true,
             email: true,
             phone: true,
+            googlePic: true,
             // Exclude password
           },
         },
@@ -538,7 +592,20 @@ export class OrdersService {
           },
         },
         address: true,
-        payment: true,
+        payment: {
+          select: {
+            id: true,
+            orderId: true,
+            userId: true,
+            amount: true,
+            method: true,
+            reference: true,
+            transactionId: true,
+            channel: true,
+            status: true,
+            createdAt: true,
+          },
+        }
       },
     });
     if (!order) return null;
@@ -731,6 +798,7 @@ export class OrdersService {
               name: true,
               email: true,
               phone: true,
+              googlePic: true,
             },
           },
           items: {
@@ -744,7 +812,20 @@ export class OrdersService {
             },
           },
           address: true,
-          payment: true,
+          payment: {
+          select: {
+            id: true,
+            orderId: true,
+            userId: true,
+            amount: true,
+            method: true,
+            reference: true,
+            transactionId: true,
+            channel: true,
+            status: true,
+            createdAt: true,
+          },
+        }
         },
         orderBy: { createdAt: 'desc' },
         skip,
@@ -782,7 +863,20 @@ export class OrdersService {
             },
           },
           address: true,
-          payment: true,
+          payment: {
+          select: {
+            id: true,
+            orderId: true,
+            userId: true,
+            amount: true,
+            method: true,
+            reference: true,
+            transactionId: true,
+            channel: true,
+            status: true,
+            createdAt: true,
+          },
+        }
         },
         orderBy: { createdAt: 'desc' },
         skip,
@@ -826,7 +920,20 @@ export class OrdersService {
           },
         },
         address: true,
-        payment: true,
+        payment: {
+          select: {
+            id: true,
+            orderId: true,
+            userId: true,
+            amount: true,
+            method: true,
+            reference: true,
+            transactionId: true,
+            channel: true,
+            status: true,
+            createdAt: true,
+          },
+        }
       },
     });
 
@@ -1099,3 +1206,4 @@ export class OrdersService {
     });
   }
 }
+

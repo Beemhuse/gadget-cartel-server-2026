@@ -9,7 +9,6 @@ import {
   HttpCode,
   HttpStatus,
   UnauthorizedException,
-  Query,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { AuthService } from './auth.service';
@@ -23,6 +22,7 @@ import {
   ForgotPasswordDto,
   ResetPasswordDto,
 } from './dto/auth.dto';
+import { GoogleAuthGuard } from './google-auth.guard';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -85,33 +85,59 @@ export class AuthController {
      GOOGLE OAUTH
   ========================== */
 
-  @Get('google')
-  @UseGuards(AuthGuard('google'))
+  @Get('google/init')
+  @UseGuards(GoogleAuthGuard)
   @ApiOperation({ summary: 'Initiate Google OAuth login' })
   googleAuth() {
     // Passport handles redirect
   }
 
+  @Get('google')
+  @UseGuards(GoogleAuthGuard)
+  @ApiOperation({ summary: 'Initiate Google OAuth login (alias)' })
+  googleAuthAlias() {
+    // Passport handles redirect
+  }
+
   @Get('google/callback')
-  @UseGuards(AuthGuard('google'))
+  @UseGuards(GoogleAuthGuard)
   @ApiOperation({ summary: 'Google OAuth callback' })
   async googleAuthRedirect(@Req() req, @Res() res: express.Response) {
-    const { access_token, refresh_token } = await this.authService.login(
-      req.user,
-    );
-
+    // 1. Get user data from Google (Passport puts it in req.user)
+    const user = req.user;
     const frontendUrl =
       this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
 
-    /**
-     * Redirect tokens to frontend.
-     * Frontend should:
-     * 1. Read query params
-     * 2. Store tokens securely (cookies / memory)
-     * 3. Redirect user internally
-     */
+    console.log('======================================');
+    console.log('Google OAuth callback received');
+    console.log('User from database:', {
+      id: user.id,
+      email: user.email,
+      is_admin: user.is_admin,
+      name: user.name,
+      googlePic: user.googlePic,
+    });
+    console.log('======================================');
+
+    // 2. Pass the user to your service to generate a JWT
+    const {
+      access_token,
+      refresh_token,
+      user: loginUser,
+    } = await this.authService.login(user);
+
+    console.log('JWT generated with payload:', {
+      email: loginUser.email,
+      is_admin: loginUser.is_admin,
+    });
+
+    // 3. Send the token back (as a cookie or JSON)
+    const emailParam = encodeURIComponent(
+      loginUser?.email || (user as any)?.email || '',
+    );
+
     return res.redirect(
-      `${frontendUrl}/oauth/callback?access_token=${access_token}&refresh_token=${refresh_token}`,
+      `${frontendUrl}/sign-in?access_token=${access_token}&refresh_token=${refresh_token}&email=${emailParam}`,
     );
   }
 
@@ -121,8 +147,30 @@ export class AuthController {
 
   @Get('user')
   @UseGuards(AuthGuard('jwt'))
-  @ApiOperation({ summary: 'Get currently authenticated user' })
+  @ApiOperation({ summary: 'Get currently authenticated user profile' })
+  @ApiResponse({
+    status: 200,
+    description:
+      'Returns the complete user profile including Google picture, admin status, and account details',
+  })
   async getUser(@Req() req) {
-    return req.user;
+    const userId = req.user.userId || req.user.sub;
+
+    const user = await this.authService.getUserProfile(userId);
+
+    return {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      phone: user.phone,
+      country: user.country,
+      state: user.state,
+      googlePic: user.googlePic,
+      googleId: user.googleId,
+      is_admin: user.is_admin,
+      isVerified: user.isVerified,
+      createdAt: user.createdAt,
+      lastLogin: user.lastLogin,
+    };
   }
 }

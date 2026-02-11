@@ -2,12 +2,20 @@ import {
   Injectable,
   UnauthorizedException,
   BadRequestException,
-  InternalServerErrorException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma/prisma.service';
 import * as bcrypt from 'bcrypt';
 import { Resend } from 'resend';
+
+const ADMIN_EMAIL_WHITELIST = new Set<string>([
+  // Add admin emails here (lowercase recommended).
+  'beemhuse@gmail.com',
+]);
+
+const normalizeEmail = (email: string) => email.trim().toLowerCase();
+const isAdminEmail = (email: string) =>
+  ADMIN_EMAIL_WHITELIST.has(normalizeEmail(email));
 
 @Injectable()
 export class AuthService {
@@ -67,6 +75,7 @@ export class AuthService {
       throw new BadRequestException('User already exists');
     }
 
+    const isAdmin = isAdminEmail(email);
     const hashedPassword = await bcrypt.hash(password, 10);
     const verificationCode = this.generateOtp();
     const verificationExp = new Date(Date.now() + 15 * 60 * 1000);
@@ -83,6 +92,7 @@ export class AuthService {
         phone: phone_number,
         country,
         state,
+        is_admin: isAdmin,
         isVerified: false,
         verificationCode,
         verificationExp,
@@ -142,6 +152,20 @@ export class AuthService {
     const valid = await bcrypt.compare(pass, user.password);
     if (!valid) return null;
 
+    if (!user.is_admin && isAdminEmail(email)) {
+      try {
+        const updated = await this.prisma.user.update({
+          where: { id: user.id },
+          data: { is_admin: true },
+        });
+        user.is_admin = updated.is_admin;
+      } catch (error) {
+        if (process.env.NODE_ENV !== 'production') {
+          console.error('Failed to promote admin:', error);
+        }
+      }
+    }
+
     const { password, ...result } = user;
     return result;
   }
@@ -184,27 +208,74 @@ export class AuthService {
     email: string;
     firstName: string;
     lastName: string;
-    picture: null;
+    picture: string | null;
     googleId: string;
   }) {
     const { email, firstName, lastName, picture, googleId } = details;
+    const isAdmin = isAdminEmail(email);
+    const googleName = `${firstName} ${lastName}`;
+
+    console.log('======================================');
+    console.log('Validating Google user:', email);
+    console.log('Is in admin whitelist:', isAdmin);
+    console.log('Google profile picture:', picture);
+    console.log('======================================');
+
+    // Check if user already exists
+    const existingUser = await this.prisma.user.findUnique({
+      where: { email },
+      select: { id: true, name: true },
+    });
 
     return this.prisma.user.upsert({
       where: { email },
       update: {
-        name: `${firstName} ${lastName}`,
-        picture,
+        // Only update name if user doesn't have one
+        name: existingUser?.name || googleName,
+        googlePic: picture,
         googleId,
         isVerified: true, // ✅ Google users auto-verified
+        is_admin: isAdmin, // ✅ Always update admin status based on whitelist
       },
       create: {
         email,
-        name: `${firstName} ${lastName}`,
-        picture,
+        name: googleName,
+        googlePic: picture,
         googleId,
         isVerified: true,
+        is_admin: isAdmin,
       },
     });
+  }
+
+  /* ==========================
+     USER PROFILE
+  ========================== */
+
+  async getUserProfile(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        phone: true,
+        country: true,
+        state: true,
+        googlePic: true,
+        googleId: true,
+        is_admin: true,
+        isVerified: true,
+        createdAt: true,
+        lastLogin: true,
+      },
+    });
+
+    if (!user) {
+      throw new BadRequestException('User not found');
+    }
+
+    return user;
   }
 
   /* ==========================

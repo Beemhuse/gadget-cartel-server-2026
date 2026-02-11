@@ -49,6 +49,12 @@ export class ProductsController {
     return this.productsService.findAll(query);
   }
 
+  @Get('trending')
+  @ApiOperation({ summary: 'List trending products (most purchased)' })
+  findTrending(@Query('limit') limit?: string) {
+    return this.productsService.findTrending({ limit });
+  }
+
   @Get('categories')
   @ApiOperation({ summary: 'List all product categories' })
   getCategories(@Query() query: any) {

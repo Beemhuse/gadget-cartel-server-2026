@@ -17,7 +17,7 @@ model User {
   phone            String?
   country          String?
   state            String?
-  picture          String?
+  googlePic        String?   @map("google_pic")
   googleId         String?   @unique
   password         String?
   is_admin         Boolean   @default(false)
