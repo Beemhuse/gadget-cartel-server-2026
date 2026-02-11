@@ -57,6 +57,12 @@ export class ForgotPasswordDto {
   email: string;
 }
 
+export class ResendOtpDto {
+  @ApiProperty({ example: 'john@example.com' })
+  @IsEmail()
+  email: string;
+}
+
 export class ResetPasswordDto {
   @ApiProperty()
   @IsString()

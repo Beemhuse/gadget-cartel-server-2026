@@ -13,7 +13,9 @@ async function bootstrap() {
   const allowedOrigins = [
     configService.get('FRONTEND_URL'),
     'https://gadget-cartel-2026.vercel.app',
-  ].filter(Boolean); // removes undefined/null
+  ]
+    .filter(Boolean)
+    .map((origin) => origin.replace(/\/$/, '')); // 🔥 removes trailing slash
 
   app.enableCors({
     origin: allowedOrigins,

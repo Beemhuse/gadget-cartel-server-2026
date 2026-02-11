@@ -11,6 +11,7 @@ import { Resend } from 'resend';
 const ADMIN_EMAIL_WHITELIST = new Set<string>([
   // Add admin emails here (lowercase recommended).
   'beemhuse@gmail.com',
+  'mediacarteleleazar@gmail.com',
 ]);
 
 const normalizeEmail = (email: string) => email.trim().toLowerCase();
@@ -59,6 +60,30 @@ export class AuthService {
   /* ==========================
      REGISTER + VERIFY EMAIL
   ========================== */
+
+  async resendOtpCode(email: string) {
+    const user = await this.prisma.user.findUnique({ where: { email } });
+
+    if (!user) {
+      throw new BadRequestException('User not found');
+    }
+
+    if (user.isVerified) {
+      return { message: 'Email already verified' };
+    }
+
+    const verificationCode = this.generateOtp();
+    const verificationExp = new Date(Date.now() + 15 * 60 * 1000);
+
+    await this.prisma.user.update({
+      where: { email },
+      data: { verificationCode, verificationExp },
+    });
+
+    await this.sendVerificationCode(email, verificationCode);
+
+    return { message: 'Verification code resent' };
+  }
 
   async register(data: {
     email: string;
@@ -293,7 +318,7 @@ export class AuthService {
 
     const resetLink = `${
       process.env.FRONTEND_URL || 'http://localhost:3000'
-    }/auth/reset-password?token=${token}`;
+    }/forgot-password/reset-password?token=${token}`;
 
     if (!process.env.RESEND_API_KEY) {
       console.log('[DEV RESET LINK]', resetLink);

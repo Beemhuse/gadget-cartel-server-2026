@@ -20,6 +20,7 @@ import {
   LoginDto,
   VerifyEmailDto,
   ForgotPasswordDto,
+  ResendOtpDto,
   ResetPasswordDto,
 } from './dto/auth.dto';
 import { GoogleAuthGuard } from './google-auth.guard';
@@ -79,6 +80,12 @@ export class AuthController {
   @ApiOperation({ summary: 'Verify email using 4-digit code' })
   async verifyEmail(@Body() body: VerifyEmailDto) {
     return this.authService.verifyEmailCode(body.email, body.otp);
+  }
+
+  @Post('resend-otp-code')
+  @ApiOperation({ summary: 'Resend email verification code' })
+  async resendOtpCode(@Body() body: ResendOtpDto) {
+    return this.authService.resendOtpCode(body.email);
   }
 
   /* ==========================
