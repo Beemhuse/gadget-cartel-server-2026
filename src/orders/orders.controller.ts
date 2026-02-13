@@ -27,8 +27,8 @@ export class OrdersController {
 
   @Get(':id')
   @ApiOperation({ summary: 'Get order details' })
-  findOne(@Param('id') id: string) {
-    return this.ordersService.findOne(id);
+  findOne(@Param('id') id: string, @Req() req) {
+    return this.ordersService.findOneForUser(id, req.user.sub);
   }
 
   // Checkout endpoint usually creates the order

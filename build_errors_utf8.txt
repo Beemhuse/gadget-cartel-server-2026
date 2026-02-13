@@ -1,0 +1,470 @@
+﻿
+> server@0.0.1 build
+> prisma generate && nest build
+
+node.exe : warn The 
+configuration 
+property 
+`package.json#prisma` 
+is deprecated and 
+will be removed in 
+Prisma 7. Please 
+migrate to a Prisma 
+config file (e.g., 
+`prisma.config.ts`).
+At line:1 char:1
++ & "C:\Program Files\
+nodejs/node.exe" "C:\U
+sers\ADMIN\AppData\Roa
+ming\ ...
++ ~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~
+~~~~~
+    + CategoryInfo    
+          : 
+NotSpecified    : 
+(warn The config.    
+..ma.config.ts`).:S   
+ tring) [], RemoteEx  
+  ception
+    + 
+FullyQualifiedErr    
+orId : NativeComman   
+ dError
+ 
+For more information, 
+see: https://pris.ly/p
+risma-config
+
+Environment variables 
+loaded from .env
+Prisma schema loaded from prisma\schema.prisma
+
+Ô£ö Generated Prisma Client (v6.19.2) to .\node_modules\@prisma\client in 251ms
+
+Start by importing your Prisma Client (See: https://pris.ly/d/importing-client)
+
+Tip: Want to turn off tips and other hints? https://pris.ly/tip-4-nohints
+
+[96msrc/customers/cus
+tomers.controller.ts[
+0m:[93m143[0m:[93m3
+1[0m - 
+[91merror[0m[90m 
+TS2339: [0mProperty 
+'quoteShipping' does 
+not exist on type 
+'OrdersService'.
+
+[7m143[0m     
+return this.ordersServ
+ice.quoteShipping(req.
+user.sub, body);
+[7m   [0m [91m     
+                      
+   ~~~~~~~~~~~~~[0m
+[96msrc/customers/cus
+tomers.controller.ts[
+0m:[93m243[0m:[93m3
+1[0m - 
+[91merror[0m[90m 
+TS2339: [0mProperty 
+'findAllForUser' does 
+not exist on type 
+'OrdersService'.
+
+[7m243[0m     
+return this.ordersServ
+ice.findAllForUser(req
+.user.sub, query);
+[7m   [0m [91m     
+                      
+   ~~~~~~~~~~~~~~[0m
+[96msrc/customers/cus
+tomers.controller.ts[
+0m:[93m332[0m:[93m3
+1[0m - 
+[91merror[0m[90m 
+TS2339: [0mProperty '
+findAllForCustomerAdmi
+n' does not exist on 
+type 'OrdersService'.
+
+[7m332[0m     
+return this.ordersServ
+ice.findAllForCustomer
+Admin(id, query);
+[7m   [0m [91m     
+                      
+   ~~~~~~~~~~~~~~~~~~~
+~~~~[0m
+[96msrc/customers/cus
+tomers.controller.ts[
+0m:[93m349[0m:[93m3
+1[0m - 
+[91merror[0m[90m 
+TS2339: [0mProperty '
+findAllForCustomerAdmi
+n' does not exist on 
+type 'OrdersService'.
+
+[7m349[0m     
+return this.ordersServ
+ice.findAllForCustomer
+Admin(id, query);
+[7m   [0m [91m     
+                      
+   ~~~~~~~~~~~~~~~~~~~
+~~~~[0m
+[96msrc/customers/cus
+tomers.controller.ts[
+0m:[93m356[0m:[93m3
+1[0m - 
+[91merror[0m[90m 
+TS2339: [0mProperty 
+'findAllAdmin' does 
+not exist on type 
+'OrdersService'.
+
+[7m356[0m     
+return this.ordersServ
+ice.findAllAdmin(query
+);
+[7m   [0m [91m     
+                      
+   ~~~~~~~~~~~~[0m
+[96msrc/customers/cus
+tomers.controller.ts[
+0m:[93m363[0m:[93m3
+1[0m - 
+[91merror[0m[90m 
+TS2339: [0mProperty 
+'findOneAdmin' does 
+not exist on type 
+'OrdersService'.
+
+[7m363[0m     
+return this.ordersServ
+ice.findOneAdmin(id);
+[7m   [0m [91m     
+                      
+   ~~~~~~~~~~~~[0m
+[96msrc/customers/cus
+tomers.controller.ts[
+0m:[93m370[0m:[93m3
+1[0m - 
+[91merror[0m[90m 
+TS2339: [0mProperty 
+'update' does not 
+exist on type 
+'OrdersService'.
+
+[7m370[0m     
+return this.ordersServ
+ice.update(id, body);
+[7m   [0m [91m     
+                      
+   ~~~~~~[0m
+[96msrc/orders/orders
+.controller.ts[0m:[9
+3m25[0m:[93m31[0m 
+- [91merror[0m[90m 
+TS2339: [0mProperty 
+'findAll' does not 
+exist on type 
+'OrdersService'.
+
+[7m25[0m     return 
+this.ordersService.fin
+dAll(req.user.sub);
+[7m  [0m [91m      
+                      
+  ~~~~~~~[0m
+[96msrc/orders/orders
+.controller.ts[0m:[9
+3m31[0m:[93m31[0m 
+- [91merror[0m[90m 
+TS2339: [0mProperty 
+'findOne' does not 
+exist on type 
+'OrdersService'.
+
+[7m31[0m     return 
+this.ordersService.fin
+dOne(id);
+[7m  [0m [91m      
+                      
+  ~~~~~~~[0m
+[96msrc/orders/orders
+.controller.ts[0m:[9
+3m38[0m:[93m31[0m 
+- [91merror[0m[90m 
+TS2339: [0mProperty 
+'create' does not 
+exist on type 
+'OrdersService'.
+
+[7m38[0m     return 
+this.ordersService.cre
+ate(req.user.sub, 
+body);
+[7m  [0m [91m      
+                      
+  ~~~~~~[0m
+[96msrc/orders/orders
+.service.ts[0m:[93m3
+8[0m:[93m42[0m - 
+[91merror[0m[90m 
+TS2345: [0mArgument 
+of type '{ user: { 
+id: string; email: 
+string; googleId: 
+string | null; name: 
+string | null; phone: 
+string | null; 
+country: string | 
+null; state: string | 
+null; googlePic: 
+string | null; 
+password: string | 
+null; ... 7 more ...; 
+isVerified: boolean; 
+} | null; address: { 
+...; } | null; 
+payment: { ...; } | 
+null; items: ({ ...; 
+}...' is not 
+assignable to 
+parameter of type '{ 
+items?: { price: 
+number; quantity: 
+number; }[] | 
+undefined; subtotal?: 
+number | undefined; 
+taxAmount?: number | 
+undefined; 
+deliveryFee?: number 
+| undefined; total?: 
+number | undefined; 
+}'.
+  Types of property 
+'items' are 
+incompatible.
+    Type '({ product: 
+{ images: { id: 
+string; createdAt: 
+Date; productId: 
+string; url: string; 
+sortOrder: number; 
+publicId: string | 
+null; isPrimary: 
+boolean; }[]; } & { 
+id: string; name: 
+string; createdAt: 
+Date; ... 24 more 
+...; brandId: string 
+| null; }; } & { ...; 
+})[] & OrderItemWithRe
+view[]' is not 
+assignable to type '{ 
+price: number; 
+quantity: number; }[] 
+| undefined'.
+      Type '({ 
+product: { images: { 
+id: string; 
+createdAt: Date; 
+productId: string; 
+url: string; 
+sortOrder: number; 
+publicId: string | 
+null; isPrimary: 
+boolean; }[]; } & { 
+id: string; name: 
+string; createdAt: 
+Date; ... 24 more 
+...; brandId: string 
+| null; }; } & { ...; 
+})[] & OrderItemWithRe
+view[]' is not 
+assignable to type '{ 
+price: number; 
+quantity: number; 
+}[]'.
+        The types 
+returned by 'pop()' 
+are incompatible 
+between these types.
+          Type '({ 
+product: { images: { 
+id: string; 
+createdAt: Date; 
+productId: string; 
+url: string; 
+sortOrder: number; 
+publicId: string | 
+null; isPrimary: 
+boolean; }[]; } & { 
+id: string; name: 
+string; createdAt: 
+Date; ... 24 more 
+...; brandId: string 
+| null; }; } & { ...; 
+}) | undefined' is 
+not assignable to 
+type '{ price: 
+number; quantity: 
+number; } | 
+undefined'.
+            Type '{ 
+product: { images: { 
+id: string; 
+createdAt: Date; 
+productId: string; 
+url: string; 
+sortOrder: number; 
+publicId: string | 
+null; isPrimary: 
+boolean; }[]; } & { 
+id: string; name: 
+string; createdAt: 
+Date; ... 24 more 
+...; brandId: string 
+| null; }; } & { ...; 
+}' is not assignable 
+to type '{ price: 
+number; quantity: 
+number; } | 
+undefined'.
+              Type '{ 
+product: { images: { 
+id: string; 
+createdAt: Date; 
+productId: string; 
+url: string; 
+sortOrder: number; 
+publicId: string | 
+null; isPrimary: 
+boolean; }[]; } & { 
+id: string; name: 
+string; createdAt: 
+Date; ... 24 more 
+...; brandId: string 
+| null; }; } & { ...; 
+}' is not assignable 
+to type '{ price: 
+number; quantity: 
+number; }'.
+                Types 
+of property 'price' 
+are incompatible.
+                  
+Type 'Decimal' is not 
+assignable to type 
+'number'.
+
+[7m38[0m       
+summary: this.summaryS
+ervice.build(withRevie
+ws),
+[7m  [0m [91m      
+                      
+             
+~~~~~~~~~~~[0m
+[96msrc/orders/orders
+.service.ts[0m:[93m5
+9[0m:[93m7[0m - 
+[91merror[0m[90m 
+TS2345: [0mArgument 
+of type '{ user: { 
+id: string; email: 
+string; googleId: 
+string | null; name: 
+string | null; phone: 
+string | null; 
+country: string | 
+null; state: string | 
+null; googlePic: 
+string | null; 
+password: string | 
+null; ... 7 more ...; 
+isVerified: boolean; 
+} | null; items: ({ 
+...; } & { ...; })[]; 
+} & { ...; }' is not 
+assignable to 
+parameter of type '{ 
+id: string; items: 
+any[]; user?: { 
+email?: string | 
+undefined; } | 
+undefined; }'.
+  Types of property 
+'user' are 
+incompatible.
+    Type '{ id: 
+string; email: 
+string; googleId: 
+string | null; name: 
+string | null; phone: 
+string | null; 
+country: string | 
+null; state: string | 
+null; googlePic: 
+string | null; 
+password: string | 
+null; ... 7 more ...; 
+isVerified: boolean; 
+} | null' is not 
+assignable to type '{ 
+email?: string | 
+undefined; } | 
+undefined'.
+      Type 'null' is 
+not assignable to 
+type '{ email?: 
+string | undefined; } 
+| undefined'.
+
+[7m59[0m       
+order,
+[7m  [0m [91m      
+~~~~~[0m
+[96msrc/orders/orders
+.service.ts[0m:[93m6
+4[0m:[93m7[0m - 
+[91merror[0m[90m 
+TS2322: [0mType 
+'string | null' is 
+not assignable to 
+type 'string'.
+  Type 'null' is not 
+assignable to type 
+'string'.
+
+[7m64[0m       
+userId: order.userId,
+[7m  [0m [91m      
+~~~~~~[0m
+
+  [96msrc/notificatio
+ns/notifications.servi
+ce.ts[0m:[93m9[0m:
+[93m5[0m
+    [7m9[0m     
+userId: string;
+    [7m [0m [96m   
+ ~~~~~~[0m
+    The expected type 
+comes from property 
+'userId' which is 
+declared here on type 
+'{ userId: string; 
+title: string; 
+message: string; 
+type?: string | 
+undefined; }'
+
+Found 13 error(s).
+

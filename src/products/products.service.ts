@@ -42,7 +42,8 @@ export class ProductsService {
       this.prisma.product.count(),
     ]);
 
-    return { results, count };
+    const resultsWithStats = await this.attachReviewStats(results);
+    return { results: resultsWithStats, count };
   }
 
   async findTrending(query: { limit?: string | number }) {
@@ -76,7 +77,8 @@ export class ProductsService {
       .map((entry) => productById.get(entry.productId))
       .filter(Boolean);
 
-    return { results: ordered, count: ordered.length };
+    const resultsWithStats = await this.attachReviewStats(ordered);
+    return { results: resultsWithStats, count: resultsWithStats.length };
   }
 
   async findOne(slugOrId: string) {
@@ -100,7 +102,20 @@ export class ProductsService {
       throw new NotFoundException('Product not found');
     }
 
-    return product;
+    const reviewCount = product.reviews?.length ?? 0;
+    const averageRating =
+      reviewCount > 0
+        ? product.reviews.reduce(
+            (sum, review) => sum + Number(review?.rating ?? 0),
+            0,
+          ) / reviewCount
+        : 0;
+
+    return {
+      ...product,
+      review_count: reviewCount,
+      average_rating: averageRating,
+    };
   }
 
   async create(data: CreateProductDto) {
@@ -601,5 +616,39 @@ export class ProductsService {
     }
 
     return data;
+  }
+
+  private async attachReviewStats(products: any[]) {
+    if (!Array.isArray(products) || products.length === 0) {
+      return products;
+    }
+
+    const productIds = products
+      .map((product) => product?.id)
+      .filter(Boolean) as string[];
+
+    if (productIds.length === 0) {
+      return products;
+    }
+
+    const stats = await this.prisma.review.groupBy({
+      by: ['productId'],
+      where: { productId: { in: productIds } },
+      _count: { _all: true },
+      _avg: { rating: true },
+    });
+
+    const statsMap = new Map(
+      stats.map((entry) => [entry.productId, entry]),
+    );
+
+    return products.map((product) => {
+      const stat = statsMap.get(product.id);
+      return {
+        ...product,
+        review_count: stat?._count?._all ?? 0,
+        average_rating: stat?._avg?.rating ?? 0,
+      };
+    });
   }
 }

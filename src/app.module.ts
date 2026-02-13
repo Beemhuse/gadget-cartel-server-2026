@@ -17,6 +17,7 @@ import { AdsModule } from './ads/ads.module';
 import { SupportModule } from './support/support.module';
 import { SettingsModule } from './settings/settings.module';
 import { CustomersModule } from './customers/customers.module';
+import { ReviewsModule } from './reviews/reviews.module';
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { CustomersModule } from './customers/customers.module';
     SupportModule,
     SettingsModule,
     CustomersModule,
+    ReviewsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
