@@ -190,7 +190,11 @@ export class DashboardService {
     const now = new Date();
 
     const monthBuckets = Array.from({ length: monthsToShow }).map((_, idx) => {
-      const date = new Date(now.getFullYear(), now.getMonth() - (monthsToShow - 1 - idx), 1);
+      const date = new Date(
+        now.getFullYear(),
+        now.getMonth() - (monthsToShow - 1 - idx),
+        1,
+      );
       const start = new Date(date.getFullYear(), date.getMonth(), 1);
       const end = new Date(date.getFullYear(), date.getMonth() + 1, 1);
       return {
@@ -228,30 +232,26 @@ export class DashboardService {
     const thirtyDaysAgo = new Date(now);
     thirtyDaysAgo.setDate(now.getDate() - 30);
 
-    const [
-      revenueAgg,
-      totalOrders,
-      newCustomers,
-      orderItems,
-    ] = await Promise.all([
-      this.prisma.order.aggregate({
-        _sum: { total: true },
-      }),
-      this.prisma.order.count(),
-      this.prisma.user.count({
-        where: {
-          createdAt: {
-            gte: thirtyDaysAgo,
+    const [revenueAgg, totalOrders, newCustomers, orderItems] =
+      await Promise.all([
+        this.prisma.order.aggregate({
+          _sum: { total: true },
+        }),
+        this.prisma.order.count(),
+        this.prisma.user.count({
+          where: {
+            createdAt: {
+              gte: thirtyDaysAgo,
+            },
           },
-        },
-      }),
-      this.prisma.orderItem.findMany({
-        select: {
-          quantity: true,
-          order: { select: { status: true } },
-        },
-      }),
-    ]);
+        }),
+        this.prisma.orderItem.findMany({
+          select: {
+            quantity: true,
+            order: { select: { status: true } },
+          },
+        }),
+      ]);
 
     const productsSoldCount = orderItems.reduce((sum, item) => {
       if ((item.order?.status || '').toUpperCase() === 'CANCELLED') {
@@ -260,17 +260,21 @@ export class DashboardService {
       return sum + Number(item.quantity || 0);
     }, 0);
 
+    // Calculate Average Order Value (AOV)
+    const totalRevenue = Number(revenueAgg._sum.total || 0);
+    const averageOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
+
     return {
-      total_revenue: Number(revenueAgg._sum.total || 0),
+      total_revenue: totalRevenue,
       total_orders_received: totalOrders,
       new_customers_count: newCustomers,
       products_sold_count: productsSoldCount,
+      average_order_value: averageOrderValue,
     };
   }
 
   async getAdminRevenueChart(query: any = {}) {
-    const monthsToShow =
-      Number(query.months) > 0 ? Number(query.months) : 12;
+    const monthsToShow = Number(query.months) > 0 ? Number(query.months) : 12;
     const now = new Date();
     const start = new Date(
       now.getFullYear(),
@@ -328,8 +332,7 @@ export class DashboardService {
   }
 
   async getAdminBestSellers(query: any = {}) {
-    const limit =
-      Number(query.limit) > 0 ? Number(query.limit) : 5;
+    const limit = Number(query.limit) > 0 ? Number(query.limit) : 5;
 
     const items = await this.prisma.orderItem.findMany({
       select: {
@@ -350,7 +353,10 @@ export class DashboardService {
       string,
       { product_name: string; units_sold: number; total_revenue: number }
     >();
-    const categoryMap = new Map<string, { category_name: string; total: number }>();
+    const categoryMap = new Map<
+      string,
+      { category_name: string; total: number }
+    >();
 
     items.forEach((item) => {
       if ((item.order?.status || '').toUpperCase() === 'CANCELLED') return;
@@ -403,6 +409,66 @@ export class DashboardService {
     return {
       best_selling_products: bestSellingProducts,
       best_selling_categories: bestSellingCategories,
+    };
+  }
+
+  async SalesByCategory(query: any = {}) {
+    const items = await this.prisma.orderItem.findMany({
+      select: {
+        quantity: true,
+        price: true,
+        product: {
+          select: {
+            category: { select: { name: true } },
+          },
+        },
+        order: { select: { status: true } },
+      },
+    });
+
+    const categoryMap = new Map<string, number>();
+
+    items.forEach((item) => {
+      if ((item.order?.status || '').toUpperCase() === 'CANCELLED') return;
+      const revenue = Number(item.price || 0) * Number(item.quantity || 0);
+      const categoryName = item.product?.category?.name || 'Uncategorized';
+
+      categoryMap.set(
+        categoryName,
+        (categoryMap.get(categoryName) || 0) + revenue,
+      );
+    });
+
+    const result = Array.from(categoryMap.entries())
+      .map(([name, value]) => ({
+        name,
+        value,
+      }))
+      .sort((a, b) => b.value - a.value);
+
+    return result;
+  }
+
+  async getCustomerRetentionStats() {
+    // Basic retention: % of users with > 1 completed order
+    const users = await this.prisma.user.findMany({
+      select: {
+        _count: {
+          select: { orders: { where: { status: 'DELIVERED' } } },
+        },
+      },
+    });
+
+    const totalUsers = users.length;
+    if (totalUsers === 0) return { retentionRate: 0, repeatCustomers: 0 };
+
+    const repeatCustomers = users.filter((u) => u._count.orders > 1).length;
+    const retentionRate = (repeatCustomers / totalUsers) * 100;
+
+    return {
+      retentionRate: Number(retentionRate.toFixed(2)),
+      repeatCustomers,
+      totalUsers,
     };
   }
 }

@@ -40,6 +40,7 @@ model User {
   Reference     Referral?      @relation("UserReference")
   coupons       Coupon[]
   couponUsages  CouponUsage[]
+  disputes      Dispute[]
 }
 
 model Address {
@@ -176,6 +177,7 @@ model Order {
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
   couponUsages   CouponUsage[]
+  disputes       Dispute[]
 }
 
 model OrderItem {
@@ -414,6 +416,30 @@ model ShippingPrice {
   isActive         Boolean        @default(true)
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
+}
 
-  @@unique([zoneId, deliveryMethodId])
+model Dispute {
+  id           String           @id @default(uuid())
+  ticketNumber String           @unique @default(cuid()) @map("ticket_number")
+  reason       String
+  description  String
+  status       String           @default("OPEN") // OPEN, IN_PROGRESS, RESOLVED, CLOSED
+  userId       String
+  user         User             @relation(fields: [userId], references: [id])
+  orderId      String
+  order        Order            @relation(fields: [orderId], references: [id])
+  adminId      String?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  messages     DisputeMessage[]
+}
+
+model DisputeMessage {
+  id         String   @id @default(uuid())
+  disputeId  String
+  dispute    Dispute  @relation(fields: [disputeId], references: [id])
+  senderId   String // User ID or Admin ID
+  message    String
+  attachment String?
+  createdAt  DateTime @default(now())
 }

@@ -70,4 +70,16 @@ export class DashboardController {
   getAdminBestSellers(@Query() query: any) {
     return this.dashboardService.getAdminBestSellers(query);
   }
+
+  @Get('admin/sales-by-category')
+  @ApiOperation({ summary: 'Get sales distributed by category' })
+  getSalesByCategory(@Query() query: any) {
+    return this.dashboardService.SalesByCategory(query);
+  }
+
+  @Get('admin/customer-retention')
+  @ApiOperation({ summary: 'Get customer retention statistics' })
+  getCustomerRetention() {
+    return this.dashboardService.getCustomerRetentionStats();
+  }
 }

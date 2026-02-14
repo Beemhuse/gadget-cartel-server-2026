@@ -18,6 +18,7 @@ import { SupportModule } from './support/support.module';
 import { SettingsModule } from './settings/settings.module';
 import { CustomersModule } from './customers/customers.module';
 import { ReviewsModule } from './reviews/reviews.module';
+import { DisputesModule } from './disputes/disputes.module';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { ReviewsModule } from './reviews/reviews.module';
     SettingsModule,
     CustomersModule,
     ReviewsModule,
+    DisputesModule,
   ],
   controllers: [AppController],
   providers: [AppService],
