@@ -22,11 +22,27 @@ export class NotificationsService {
     });
   }
 
-  async findAll(userId: string) {
-    return this.prisma.notification.findMany({
-      where: { userId },
-      orderBy: { createdAt: 'desc' },
-    });
+  async findAll(userId: string, query?: { page?: any; page_size?: any }) {
+    const page = Number(query?.page) || 1;
+    const pageSize = Number(query?.page_size) || 10;
+    const skip = (page - 1) * pageSize;
+
+    const [results, count] = await Promise.all([
+      this.prisma.notification.findMany({
+        where: { userId },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: pageSize,
+      }),
+      this.prisma.notification.count({ where: { userId } }),
+    ]);
+
+    return {
+      results,
+      count,
+      page,
+      page_size: pageSize,
+    };
   }
 
   async markAsRead(id: string) {
