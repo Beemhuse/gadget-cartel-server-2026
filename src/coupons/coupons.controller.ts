@@ -15,6 +15,7 @@ import { AuthGuard } from '@nestjs/passport';
 import { AdminGuard } from '../auth/admin.guard';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { CreateCouponDto, UpdateCouponDto } from './dto/coupons.dto';
+import { OptionalAuthGuard } from '../auth/optional-auth.guard';
 
 @ApiTags('Coupons')
 @Controller('coupons')
@@ -22,9 +23,11 @@ export class CouponsController {
   constructor(private readonly couponsService: CouponsService) {}
 
   @Post('validate')
+  @UseGuards(OptionalAuthGuard)
   @ApiOperation({ summary: 'Validate coupon code' })
-  validate(@Body() body: { code: string }) {
-    return this.couponsService.validate(body.code);
+  validate(@Req() req, @Body() body: { code: string }) {
+    const userId = req?.user?.userId ?? req?.user?.sub ?? req?.user?.id;
+    return this.couponsService.validate(body.code, userId);
   }
 
   @Get('usages')

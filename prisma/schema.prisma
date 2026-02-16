@@ -312,6 +312,22 @@ model Ad {
   updatedAt          DateTime  @updatedAt @map("updated_at")
 }
 
+model BannerOne {
+  id            String   @id @default(uuid())
+  title         String
+  badgeText     String?  @map("badge_text")
+  features      Json?
+  price         Decimal?
+  buttonLabel   String?  @map("button_label")
+  buttonLink    String?  @map("button_link")
+  imageUrl      String?  @map("image_url")
+  imagePublicId String?  @map("image_public_id")
+  isPublished   Boolean  @default(false) @map("is_published")
+  displayOrder  Int?     @default(0) @map("display_order")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
 model Review {
   id        String   @id @default(uuid())
   userId    String

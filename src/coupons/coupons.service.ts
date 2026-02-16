@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateCouponDto, UpdateCouponDto } from './dto/coupons.dto';
@@ -114,6 +118,7 @@ export class CouponsService {
   }
 
   async updateStatus(id: string, isActive: boolean) {
+    console.log('Updating coupon status:', { id, isActive });
     await this.findOne(id);
     return this.prisma.coupon.update({
       where: { id },
@@ -144,7 +149,7 @@ export class CouponsService {
     }
   }
 
-  async validate(code: string) {
+  async validate(code: string, userId?: string) {
     const coupon: any = await this.prisma.coupon.findUnique({
       where: { code },
       include: {
@@ -164,6 +169,13 @@ export class CouponsService {
 
     if (coupon.validFrom && coupon.validFrom > new Date()) {
       return { valid: false, message: 'Coupon not yet active' };
+    }
+
+    if (coupon.usageLimitPerUser && coupon.usageLimitPerUser > 0 && !userId) {
+      return {
+        valid: false,
+        message: 'Please log in to apply this coupon',
+      };
     }
 
     if (coupon.usageLimit && coupon.usageLimit > 0) {
@@ -187,6 +199,19 @@ export class CouponsService {
           });
         }
         return { valid: false, message: 'Coupon usage limit reached' };
+      }
+    }
+
+    if (userId && coupon.usageLimitPerUser && coupon.usageLimitPerUser > 0) {
+      const userUsageCount = await this.prisma.couponUsage.count({
+        where: { couponId: coupon.id, userId },
+      });
+
+      if (userUsageCount >= coupon.usageLimitPerUser) {
+        return {
+          valid: false,
+          message: 'Coupon usage limit reached for this user',
+        };
       }
     }
 

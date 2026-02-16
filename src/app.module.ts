@@ -19,6 +19,7 @@ import { SettingsModule } from './settings/settings.module';
 import { CustomersModule } from './customers/customers.module';
 import { ReviewsModule } from './reviews/reviews.module';
 import { DisputesModule } from './disputes/disputes.module';
+import { BannersModule } from './banners/banners.module';
 
 @Module({
   imports: [
@@ -35,6 +36,7 @@ import { DisputesModule } from './disputes/disputes.module';
     ReferralsModule,
     CouponsModule,
     AdsModule,
+    BannersModule,
     SupportModule,
     SettingsModule,
     CustomersModule,

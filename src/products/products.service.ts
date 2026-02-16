@@ -29,17 +29,25 @@ export class ProductsService {
   ) {}
 
   async findAll(query: QueryProductDto) {
-    const { page = 1, page_size = 20 } = query;
+    const { page = 1, page_size = 20, isActive } = query;
     const skip = (Number(page) - 1) * Number(page_size);
+    const where: Record<string, any> = {};
+
+    if (typeof isActive === 'boolean') {
+      where.isActive = isActive;
+    }
 
     const [results, count] = await Promise.all([
       this.prisma.product.findMany({
+        where: Object.keys(where).length ? where : undefined,
         include: { images: true, category: true, brand: true },
         skip,
         take: Number(page_size),
         orderBy: { createdAt: 'desc' },
       }),
-      this.prisma.product.count(),
+      this.prisma.product.count({
+        where: Object.keys(where).length ? where : undefined,
+      }),
     ]);
 
     const resultsWithStats = await this.attachReviewStats(results);

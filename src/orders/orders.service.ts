@@ -112,49 +112,181 @@ export class OrdersService {
   }
 
   async create(userId: string, body: any) {
-    // Basic implementation using Cart
-    const cart = await this.prisma.cart.findUnique({
-      where: { userId },
-      include: { items: { include: { product: true } } },
-    });
+    const rawCode = typeof body?.coupon_code === 'string' ? body.coupon_code : '';
+    const couponCode = rawCode.trim();
+    const now = new Date();
 
-    if (!cart || cart.items.length === 0) {
-      throw new BadRequestException('Cart is empty');
-    }
+    const order = await this.prisma.$transaction(async (tx) => {
+      const cart = await tx.cart.findUnique({
+        where: { userId },
+        include: { items: { include: { product: true } } },
+      });
 
-    // Calculate totals
-    const items = cart.items.map((item) => ({
-      price: Number(item.product.price),
-      quantity: item.quantity,
-    }));
+      if (!cart || cart.items.length === 0) {
+        throw new BadRequestException('Cart is empty');
+      }
 
-    const summary = this.summaryService.build({ items });
+      let coupon: any = null;
+      if (couponCode) {
+        coupon = await tx.coupon.findUnique({
+          where: { code: couponCode },
+        });
 
-    // Create order
-    const order = await this.prisma.order.create({
-      data: {
-        userId,
-        total: summary.total,
-        subtotal: summary.subtotal,
-        taxAmount: summary.taxAmount,
-        deliveryFee: summary.deliveryFee,
-        status: 'PENDING',
-        paymentStatus: 'PENDING',
-        items: {
-          create: cart.items.map((item) => ({
-            productId: item.productId,
-            quantity: item.quantity,
-            price: item.product.price,
-            metadata: item.metadata || undefined,
-          })),
+        if (!coupon || !coupon.isActive) {
+          throw new BadRequestException('Invalid or expired coupon');
+        }
+
+        if (coupon.validUntil && coupon.validUntil < now) {
+          throw new BadRequestException('Coupon expired');
+        }
+
+        if (coupon.validFrom && coupon.validFrom > now) {
+          throw new BadRequestException('Coupon not yet active');
+        }
+
+        if (coupon.usageLimit && coupon.usageLimit > 0) {
+          const usageCount = await tx.couponUsage.count({
+            where: { couponId: coupon.id },
+          });
+
+          if (usageCount >= coupon.usageLimit) {
+            const isExpired = coupon.validUntil && coupon.validUntil < now;
+            if (!isExpired && coupon.isActive) {
+              await tx.coupon.update({
+                where: { id: coupon.id },
+                data: { isActive: false },
+              });
+            }
+            throw new BadRequestException('Coupon usage limit reached');
+          }
+        }
+
+        if (coupon.usageLimitPerUser && coupon.usageLimitPerUser > 0) {
+          const userUsageCount = await tx.couponUsage.count({
+            where: { couponId: coupon.id, userId },
+          });
+
+          if (userUsageCount >= coupon.usageLimitPerUser) {
+            throw new BadRequestException(
+              'Coupon usage limit reached for this user',
+            );
+          }
+        }
+      }
+
+      const toNumber = (value: any) => {
+        if (value === null || value === undefined || value === '') return 0;
+        const parsed = Number(value);
+        return Number.isFinite(parsed) ? parsed : 0;
+      };
+
+      const calculateCouponDiscount = (couponRow: any, subtotal: number) => {
+        if (!couponRow) return 0;
+        if (subtotal <= 0) return 0;
+
+        const discountType =
+          couponRow.discountType ?? couponRow.discount_type ?? 'percentage';
+        const discountValue = toNumber(
+          couponRow.discountValue ?? couponRow.discount_value,
+        );
+        const maximumDiscount = toNumber(
+          couponRow.maximumDiscount ?? couponRow.maximum_discount,
+        );
+
+        let discount = 0;
+        if (discountType === 'percentage') {
+          discount = (subtotal * discountValue) / 100;
+          if (maximumDiscount > 0) {
+            discount = Math.min(discount, maximumDiscount);
+          }
+        } else if (discountType === 'fixed') {
+          discount = discountValue;
+        }
+
+        if (!Number.isFinite(discount)) return 0;
+        return Math.max(Math.min(discount, subtotal), 0);
+      };
+
+      // Calculate totals
+      const items = cart.items.map((item) => ({
+        price: Number(item.product.price),
+        quantity: item.quantity,
+      }));
+
+      const summary = this.summaryService.build({ items });
+      const baseSubtotal = toNumber(summary.subtotal);
+      const baseTotal = toNumber(summary.total);
+
+      let couponDiscount = 0;
+      if (coupon) {
+        const minimumOrderAmount = toNumber(
+          coupon.minimumOrderAmount ?? coupon.minimum_order_amount,
+        );
+        if (minimumOrderAmount > 0 && baseSubtotal < minimumOrderAmount) {
+          throw new BadRequestException(
+            'Minimum order amount not met for this coupon',
+          );
+        }
+        couponDiscount = calculateCouponDiscount(coupon, baseSubtotal);
+      }
+
+      const finalTotal = Math.max(baseTotal - couponDiscount, 0);
+
+      // Create order
+      const order = await tx.order.create({
+        data: {
+          userId,
+          total: finalTotal,
+          subtotal: summary.subtotal,
+          taxAmount: summary.taxAmount,
+          deliveryFee: summary.deliveryFee,
+          status: 'PENDING',
+          paymentStatus: 'PENDING',
+          items: {
+            create: cart.items.map((item) => ({
+              productId: item.productId,
+              quantity: item.quantity,
+              price: item.product.price,
+              metadata: item.metadata || undefined,
+            })),
+          },
+          // Handle address, etc. from body if needed
         },
-        // Handle address, etc. from body if needed
-      },
-      include: { items: true },
-    });
+        include: { items: true },
+      });
 
-    // Clear cart
-    await this.prisma.cartItem.deleteMany({ where: { cartId: cart.id } });
+      if (coupon) {
+        await tx.couponUsage.create({
+          data: {
+            couponId: coupon.id,
+            userId,
+            orderId: order.id,
+          },
+        });
+
+        const updatedCoupon = await tx.coupon.update({
+          where: { id: coupon.id },
+          data: { usageCount: { increment: 1 } },
+        });
+
+        if (
+          updatedCoupon.usageLimit &&
+          updatedCoupon.usageLimit > 0 &&
+          updatedCoupon.usageCount >= updatedCoupon.usageLimit &&
+          updatedCoupon.isActive
+        ) {
+          await tx.coupon.update({
+            where: { id: coupon.id },
+            data: { isActive: false },
+          });
+        }
+      }
+
+      // Clear cart
+      await tx.cartItem.deleteMany({ where: { cartId: cart.id } });
+
+      return order;
+    });
 
     // Send Notification
     await this.notificationsService.createNotification({

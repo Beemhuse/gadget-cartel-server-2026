@@ -1,5 +1,5 @@
-import { IsOptional, IsString, IsNumber } from 'class-validator';
-import { Type } from 'class-transformer';
+import { IsOptional, IsString, IsNumber, IsBoolean } from 'class-validator';
+import { Type, Transform } from 'class-transformer';
 
 export class QueryProductDto {
   @IsOptional()
@@ -27,4 +27,12 @@ export class QueryProductDto {
   @IsOptional()
   @IsString()
   sortOrder?: string;
+
+  @IsOptional()
+  @Transform(({ value }) => {
+    if (value === undefined || value === null || value === '') return undefined;
+    return value === 'true' || value === true;
+  })
+  @IsBoolean()
+  isActive?: boolean;
 }
