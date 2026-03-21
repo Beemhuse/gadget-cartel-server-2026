@@ -4,8 +4,10 @@ import {
   IsNumber,
   IsBoolean,
   IsArray,
+  ValidateNested,
 } from 'class-validator';
-import { Transform } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
+import { CreateStorageOptionDto } from './product-relations.dto';
 
 export class CreateProductDto {
   @IsString()
@@ -84,7 +86,9 @@ export class CreateProductDto {
 
   @IsOptional()
   @IsArray()
-  storageOptionIds?: string[];
+  @ValidateNested({ each: true })
+  @Type(() => CreateStorageOptionDto)
+  storageOptions?: CreateStorageOptionDto[];
 
   @IsOptional()
   @IsArray()

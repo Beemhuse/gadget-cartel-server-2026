@@ -1,5 +1,12 @@
-import { IsString, IsOptional, IsNumber, IsHexColor } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsNumber,
+  IsHexColor,
+  IsUUID,
+} from 'class-validator';
 import { PartialType } from '@nestjs/mapped-types';
+import { Transform } from 'class-transformer';
 
 // Brands
 export class CreateBrandDto {
@@ -34,10 +41,15 @@ export class UpdateColorDto extends PartialType(CreateColorDto) {}
 
 // Storage Options
 export class CreateStorageOptionDto {
+  @IsOptional()
+  @IsUUID()
+  id?: string;
+
   @IsString()
   capacity: string;
 
   @IsNumber()
+  @Transform(({ value }) => parseFloat(value))
   price: number;
 }
 

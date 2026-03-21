@@ -97,7 +97,7 @@ export class ProductsService {
         category: true,
         brand: true,
         colors: true,
-        storageOptions: true,
+        storageOptions: { orderBy: { capacity: 'asc' } },
         tags: true,
         reviews: {
           include: { user: { select: { name: true, googlePic: true } } },
@@ -132,7 +132,7 @@ export class ProductsService {
       brand,
       tagIds,
       colorIds,
-      storageOptionIds,
+      storageOptions,
       features,
       specifications,
       ...rest
@@ -179,9 +179,14 @@ export class ProductsService {
       };
     }
 
-    if (storageOptionIds && storageOptionIds.length > 0) {
+    if (storageOptions && storageOptions.length > 0) {
       productData.storageOptions = {
-        connect: storageOptionIds.map((id) => ({ id })),
+        create: this.normalizeStorageOptionsPayload(storageOptions).map(
+          ({ capacity, price }) => ({
+            capacity,
+            price,
+          }),
+        ),
       };
     }
 
@@ -192,7 +197,7 @@ export class ProductsService {
         brand: true,
         images: true,
         colors: true,
-        storageOptions: true,
+        storageOptions: { orderBy: { capacity: 'asc' } },
         tags: true,
       },
     });
@@ -201,6 +206,9 @@ export class ProductsService {
   async update(slugOrId: string, data: UpdateProductDto) {
     const product = await this.prisma.product.findFirst({
       where: { OR: [{ id: slugOrId }, { slug: slugOrId }] },
+      include: {
+        storageOptions: true,
+      },
     });
 
     if (!product) {
@@ -212,7 +220,7 @@ export class ProductsService {
       brand,
       tagIds,
       colorIds,
-      storageOptionIds,
+      storageOptions,
       features,
       specifications,
       ...rest
@@ -251,23 +259,27 @@ export class ProductsService {
       };
     }
 
-    if (storageOptionIds) {
-      productData.storageOptions = {
-        set: storageOptionIds.map((id) => ({ id })),
-      };
-    }
+    return this.prisma.$transaction(async (tx) => {
+      if (storageOptions !== undefined) {
+        await this.syncProductStorageOptions(
+          tx,
+          product.id,
+          this.normalizeStorageOptionsPayload(storageOptions),
+        );
+      }
 
-    return this.prisma.product.update({
-      where: { id: product.id },
-      data: productData,
-      include: {
-        category: true,
-        brand: true,
-        images: true,
-        colors: true,
-        storageOptions: true,
-        tags: true,
-      },
+      return tx.product.update({
+        where: { id: product.id },
+        data: productData,
+        include: {
+          category: true,
+          brand: true,
+          images: true,
+          colors: true,
+          storageOptions: { orderBy: { capacity: 'asc' } },
+          tags: true,
+        },
+      });
     });
   }
 
@@ -458,26 +470,140 @@ export class ProductsService {
   }
 
   // Storage Options
-  async findAllStorageOptions() {
-    return this.prisma.storageOption.findMany({
-      orderBy: { capacity: 'asc' },
+  async findProductStorageOptions(productIdOrSlug: string) {
+    const product = await this.prisma.product.findFirst({
+      where: { OR: [{ id: productIdOrSlug }, { slug: productIdOrSlug }] },
+      include: {
+        storageOptions: {
+          orderBy: { capacity: 'asc' },
+        },
+      },
     });
+
+    if (!product) {
+      throw new NotFoundException('Product not found');
+    }
+
+    return product.storageOptions;
   }
 
-  async createStorageOption(data: CreateStorageOptionDto) {
+  async createProductStorageOption(
+    productIdOrSlug: string,
+    data: CreateStorageOptionDto,
+  ) {
+    const product = await this.prisma.product.findFirst({
+      where: { OR: [{ id: productIdOrSlug }, { slug: productIdOrSlug }] },
+    });
+
+    if (!product) {
+      throw new NotFoundException('Product not found');
+    }
+
+    const normalized = this.normalizeStorageOptionInput(data);
+
+    await this.ensureStorageCapacityIsAvailable(product.id, normalized.capacity);
+
     return this.prisma.storageOption.create({
-      data,
+      data: {
+        capacity: normalized.capacity,
+        price: normalized.price,
+        products: {
+          connect: { id: product.id },
+        },
+      },
     });
   }
 
-  async updateStorageOption(id: string, data: UpdateStorageOptionDto) {
+  async updateProductStorageOption(
+    productIdOrSlug: string,
+    id: string,
+    data: UpdateStorageOptionDto,
+  ) {
+    const product = await this.prisma.product.findFirst({
+      where: { OR: [{ id: productIdOrSlug }, { slug: productIdOrSlug }] },
+    });
+
+    if (!product) {
+      throw new NotFoundException('Product not found');
+    }
+
+    const storageOption = await this.prisma.storageOption.findFirst({
+      where: {
+        id,
+        products: {
+          some: { id: product.id },
+        },
+      },
+    });
+
+    if (!storageOption) {
+      throw new NotFoundException('Storage option not found for this product');
+    }
+
+    const capacity =
+      data.capacity !== undefined
+        ? String(data.capacity).trim()
+        : storageOption.capacity;
+    const price =
+      data.price !== undefined ? Number(data.price) : Number(storageOption.price);
+
+    if (!capacity) {
+      throw new BadRequestException('Storage capacity is required');
+    }
+
+    if (!Number.isFinite(price)) {
+      throw new BadRequestException('Storage price must be a valid number');
+    }
+
+    await this.ensureStorageCapacityIsAvailable(product.id, capacity, id);
+
     return this.prisma.storageOption.update({
       where: { id },
-      data,
+      data: {
+        capacity,
+        price,
+      },
     });
   }
 
-  async deleteStorageOption(id: string) {
+  async deleteProductStorageOption(productIdOrSlug: string, id: string) {
+    const product = await this.prisma.product.findFirst({
+      where: { OR: [{ id: productIdOrSlug }, { slug: productIdOrSlug }] },
+    });
+
+    if (!product) {
+      throw new NotFoundException('Product not found');
+    }
+
+    const storageOption = await this.prisma.storageOption.findFirst({
+      where: {
+        id,
+        products: {
+          some: { id: product.id },
+        },
+      },
+      include: {
+        products: {
+          select: { id: true },
+        },
+      },
+    });
+
+    if (!storageOption) {
+      throw new NotFoundException('Storage option not found for this product');
+    }
+
+    if (storageOption.products.length > 1) {
+      return this.prisma.storageOption.update({
+        where: { id },
+        data: {
+          products: {
+            disconnect: { id: product.id },
+          },
+        },
+      });
+    }
+
     return this.prisma.storageOption.delete({
       where: { id },
     });
@@ -624,6 +750,170 @@ export class ProductsService {
     }
 
     return data;
+  }
+
+  private normalizeStorageOptionsPayload(storageOptions: any[]) {
+    if (!Array.isArray(storageOptions)) {
+      throw new BadRequestException('Storage options must be an array');
+    }
+
+    const seenCapacities = new Set<string>();
+
+    return storageOptions.map((option) => {
+      const normalized = this.normalizeStorageOptionInput(option);
+      const capacityKey = normalized.capacity.toLowerCase();
+
+      if (seenCapacities.has(capacityKey)) {
+        throw new BadRequestException(
+          `Duplicate storage capacity "${normalized.capacity}" is not allowed`,
+        );
+      }
+
+      seenCapacities.add(capacityKey);
+      return normalized;
+    });
+  }
+
+  private normalizeStorageOptionInput(option: Record<string, any>) {
+    if (!option || typeof option !== 'object') {
+      throw new BadRequestException('Each storage option must be an object');
+    }
+
+    const capacity = String(option.capacity ?? '').trim();
+    const price = Number(option.price);
+
+    if (!capacity) {
+      throw new BadRequestException('Storage capacity is required');
+    }
+
+    if (!Number.isFinite(price)) {
+      throw new BadRequestException('Storage price must be a valid number');
+    }
+
+    return {
+      id: option.id ? String(option.id) : undefined,
+      capacity,
+      price,
+    };
+  }
+
+  private async syncProductStorageOptions(
+    tx: any,
+    productId: string,
+    storageOptions: Array<{ id?: string; capacity: string; price: number }>,
+  ) {
+    const currentProduct = await tx.product.findUnique({
+      where: { id: productId },
+      include: {
+        storageOptions: {
+          include: {
+            products: {
+              select: { id: true },
+            },
+          },
+        },
+      },
+    });
+
+    if (!currentProduct) {
+      throw new NotFoundException('Product not found');
+    }
+
+    const existingById = new Map(
+      currentProduct.storageOptions.map((option) => [option.id, option]),
+    );
+    const nextIds = new Set<string>();
+
+    for (const option of storageOptions) {
+      await this.ensureStorageCapacityIsAvailable(
+        productId,
+        option.capacity,
+        option.id,
+        tx,
+      );
+
+      if (option.id) {
+        const existing = existingById.get(option.id);
+
+        if (!existing) {
+          throw new BadRequestException(
+            'Storage option does not belong to this product',
+          );
+        }
+
+        await tx.storageOption.update({
+          where: { id: option.id },
+          data: {
+            capacity: option.capacity,
+            price: option.price,
+          },
+        });
+
+        nextIds.add(option.id);
+        continue;
+      }
+
+      const created = await tx.storageOption.create({
+        data: {
+          capacity: option.capacity,
+          price: option.price,
+          products: {
+            connect: { id: productId },
+          },
+        },
+      });
+
+      nextIds.add(created.id);
+    }
+
+    const removedOptions = currentProduct.storageOptions.filter(
+      (option) => !nextIds.has(option.id),
+    );
+
+    for (const option of removedOptions) {
+      if (option.products.length > 1) {
+        await tx.storageOption.update({
+          where: { id: option.id },
+          data: {
+            products: {
+              disconnect: { id: productId },
+            },
+          },
+        });
+        continue;
+      }
+
+      await tx.storageOption.delete({
+        where: { id: option.id },
+      });
+    }
+  }
+
+  private async ensureStorageCapacityIsAvailable(
+    productId: string,
+    capacity: string,
+    excludeId?: string,
+    tx: any = this.prisma,
+  ) {
+    const existing = await tx.storageOption.findFirst({
+      where: {
+        capacity: {
+          equals: capacity,
+          mode: 'insensitive',
+        },
+        ...(excludeId ? { NOT: { id: excludeId } } : {}),
+        products: {
+          some: { id: productId },
+        },
+      },
+      select: { id: true },
+    });
+
+    if (existing) {
+      throw new BadRequestException(
+        `Storage option "${capacity}" already exists for this product`,
+      );
+    }
   }
 
   private async attachReviewStats(products: any[]) {

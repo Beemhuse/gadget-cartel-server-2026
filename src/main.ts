@@ -9,19 +9,31 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const configService = app.get(ConfigService);
 
-  // Enable CORS
   const allowedOrigins = [
     configService.get('FRONTEND_URL'),
     'https://gadget-cartel-2026.vercel.app',
+    'https://gadgetcartel.com',
+    'https://www.gadgetcartel.com',
   ]
     .filter(Boolean)
-    .map((origin) => origin.replace(/\/$/, '')); // 🔥 removes trailing slash
+    .map((origin: string) => origin.replace(/\/$/, ''));
 
   app.enableCors({
-    origin: allowedOrigins,
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
+
+      try {
+        const parsed = new URL(origin).origin;
+
+        if (allowedOrigins.includes(parsed)) {
+          return callback(null, origin);
+        }
+      } catch {}
+
+      return callback(null, false); // 🔥 DO NOT throw
+    },
     credentials: true,
   });
-
   // Global Config
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
   app.useGlobalInterceptors(new TransformInterceptor());
@@ -36,6 +48,6 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api/docs', app, document);
 
-  await app.listen(configService.get('PORT') || 3001);
+  await app.listen(configService.get('PORT') || 5005);
 }
 bootstrap();

@@ -216,31 +216,38 @@ export class ProductsController {
   }
 
   // Storage Options CRUD
-  @Get('storage-options')
-  @ApiOperation({ summary: 'List all product storage options' })
-  getStorageOptions() {
-    return this.productsService.findAllStorageOptions();
+  @Get(':productId/storage-options')
+  @ApiOperation({ summary: 'List storage options for a product' })
+  getStorageOptions(@Param('productId') productId: string) {
+    return this.productsService.findProductStorageOptions(productId);
   }
 
-  @Post('storage-options')
-  @ApiOperation({ summary: 'Create a product storage option' })
-  createStorageOption(@Body() body: CreateStorageOptionDto) {
-    return this.productsService.createStorageOption(body);
+  @Post(':productId/storage-options')
+  @ApiOperation({ summary: 'Create a storage option for a product' })
+  createStorageOption(
+    @Param('productId') productId: string,
+    @Body() body: CreateStorageOptionDto,
+  ) {
+    return this.productsService.createProductStorageOption(productId, body);
   }
 
-  @Put('storage-options/:id')
-  @ApiOperation({ summary: 'Update a product storage option' })
+  @Put(':productId/storage-options/:id')
+  @ApiOperation({ summary: 'Update a storage option for a product' })
   updateStorageOption(
+    @Param('productId') productId: string,
     @Param('id') id: string,
     @Body() body: UpdateStorageOptionDto,
   ) {
-    return this.productsService.updateStorageOption(id, body);
+    return this.productsService.updateProductStorageOption(productId, id, body);
   }
 
-  @Delete('storage-options/:id')
-  @ApiOperation({ summary: 'Delete a product storage option' })
-  deleteStorageOption(@Param('id') id: string) {
-    return this.productsService.deleteStorageOption(id);
+  @Delete(':productId/storage-options/:id')
+  @ApiOperation({ summary: 'Delete a storage option for a product' })
+  deleteStorageOption(
+    @Param('productId') productId: string,
+    @Param('id') id: string,
+  ) {
+    return this.productsService.deleteProductStorageOption(productId, id);
   }
 
   // Product image management (Cloudinary)
