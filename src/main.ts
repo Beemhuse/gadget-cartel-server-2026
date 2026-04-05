@@ -12,6 +12,7 @@ async function bootstrap() {
     configService.get('FRONTEND_URL'),
     'https://gadget-cartel-2026.vercel.app',
     'https://gadgetcartel.com',
+    'http://localhost:3000',
     'https://www.gadgetcartel.com',
   ]
     .filter(Boolean)
