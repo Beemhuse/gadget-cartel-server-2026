@@ -8,7 +8,6 @@ import { ConfigService } from '@nestjs/config';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const configService = app.get(ConfigService);
-
   const allowedOrigins = [
     configService.get('FRONTEND_URL'),
     'https://gadget-cartel-2026.vercel.app',

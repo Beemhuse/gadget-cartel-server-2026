@@ -501,7 +501,10 @@ export class ProductsService {
 
     const normalized = this.normalizeStorageOptionInput(data);
 
-    await this.ensureStorageCapacityIsAvailable(product.id, normalized.capacity);
+    await this.ensureStorageCapacityIsAvailable(
+      product.id,
+      normalized.capacity,
+    );
 
     return this.prisma.storageOption.create({
       data: {
@@ -545,7 +548,9 @@ export class ProductsService {
         ? String(data.capacity).trim()
         : storageOption.capacity;
     const price =
-      data.price !== undefined ? Number(data.price) : Number(storageOption.price);
+      data.price !== undefined
+        ? Number(data.price)
+        : Number(storageOption.price);
 
     if (!capacity) {
       throw new BadRequestException('Storage capacity is required');
@@ -936,9 +941,7 @@ export class ProductsService {
       _avg: { rating: true },
     });
 
-    const statsMap = new Map(
-      stats.map((entry) => [entry.productId, entry]),
-    );
+    const statsMap = new Map(stats.map((entry) => [entry.productId, entry]));
 
     return products.map((product) => {
       const stat = statsMap.get(product.id);

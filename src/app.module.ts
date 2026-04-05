@@ -20,10 +20,23 @@ import { CustomersModule } from './customers/customers.module';
 import { ReviewsModule } from './reviews/reviews.module';
 import { DisputesModule } from './disputes/disputes.module';
 import { BannersModule } from './banners/banners.module';
+import { ThrottlerModule } from '@nestjs/throttler/dist/throttler.module';
+import { ThrottlerGuard } from '@nestjs/throttler/dist/throttler.guard';
+import { APP_GUARD } from '@nestjs/core/constants';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    // ✅ Rate limiting
+    ThrottlerModule.forRoot({
+      throttlers: [
+        {
+          ttl: 60,
+          limit: 100,
+        },
+      ],
+    }),
+
     PrismaModule,
     AuthModule,
     UsersModule,
@@ -44,6 +57,12 @@ import { BannersModule } from './banners/banners.module';
     DisputesModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
+  ],
 })
 export class AppModule {}

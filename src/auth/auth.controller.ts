@@ -24,6 +24,7 @@ import {
   ResetPasswordDto,
 } from './dto/auth.dto';
 import { GoogleAuthGuard } from './google-auth.guard';
+import { Throttle } from '@nestjs/throttler/dist/throttler.decorator';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -36,7 +37,7 @@ export class AuthController {
   /* ==========================
      EMAIL + PASSWORD
   ========================== */
-
+  @Throttle({ default: { limit: 5, ttl: 60 } })
   @Post('login')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Login with email and password' })
@@ -52,6 +53,7 @@ export class AuthController {
     return this.authService.login(user);
   }
 
+  @Throttle({ default: { limit: 5, ttl: 60 } })
   @Post('register')
   @ApiOperation({
     summary: 'Register a new user (email verification required)',
@@ -64,24 +66,28 @@ export class AuthController {
      PASSWORD RESET
   ========================== */
 
+  @Throttle({ default: { limit: 5, ttl: 60 } })
   @Post('forgot-password')
   @ApiOperation({ summary: 'Request password reset email' })
   async forgotPassword(@Body() body: ForgotPasswordDto) {
     return this.authService.forgotPassword(body.email);
   }
 
+  @Throttle({ default: { limit: 5, ttl: 60 } })
   @Post('reset-password')
   @ApiOperation({ summary: 'Reset password using token' })
   async resetPassword(@Body() body: ResetPasswordDto) {
     return this.authService.resetPassword(body.token, body.password);
   }
 
+  @Throttle({ default: { limit: 5, ttl: 60 } })
   @Post('verify-email')
   @ApiOperation({ summary: 'Verify email using 4-digit code' })
   async verifyEmail(@Body() body: VerifyEmailDto) {
     return this.authService.verifyEmailCode(body.email, body.otp);
   }
 
+  @Throttle({ default: { limit: 5, ttl: 60 } })
   @Post('resend-otp-code')
   @ApiOperation({ summary: 'Resend email verification code' })
   async resendOtpCode(@Body() body: ResendOtpDto) {
@@ -92,6 +98,7 @@ export class AuthController {
      GOOGLE OAUTH
   ========================== */
 
+  @Throttle({ default: { limit: 5, ttl: 60 } })
   @Get('google/init')
   @UseGuards(GoogleAuthGuard)
   @ApiOperation({ summary: 'Initiate Google OAuth login' })
@@ -99,6 +106,7 @@ export class AuthController {
     // Passport handles redirect
   }
 
+  @Throttle({ default: { limit: 5, ttl: 60 } })
   @Get('google')
   @UseGuards(GoogleAuthGuard)
   @ApiOperation({ summary: 'Initiate Google OAuth login (alias)' })
@@ -106,6 +114,7 @@ export class AuthController {
     // Passport handles redirect
   }
 
+  @Throttle({ default: { limit: 5, ttl: 60 } })
   @Get('google/callback')
   @UseGuards(GoogleAuthGuard)
   @ApiOperation({ summary: 'Google OAuth callback' })
