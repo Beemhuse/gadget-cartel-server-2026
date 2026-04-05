@@ -1082,17 +1082,21 @@ export class ProductsService {
   }
 
   private buildProductListOrderBy(query: QueryProductDto) {
-    const direction = query.sortOrder === 'asc' ? 'asc' : 'desc';
+    const direction = query.sortOrder === 'asc' ? ('asc' as const) : ('desc' as const);
 
     switch (query.sortBy) {
       case 'createdAt':
+        return { createdAt: direction };
       case 'updatedAt':
+        return { updatedAt: direction };
       case 'name':
+        return { name: direction };
       case 'price':
+        return { price: direction };
       case 'stockQuantity':
-        return { [query.sortBy]: direction };
+        return { stockQuantity: direction };
       default:
-        return { createdAt: 'desc' };
+        return { createdAt: 'desc' as const };
     }
   }
 }
