@@ -29,24 +29,28 @@ export class ProductsService {
   ) {}
 
   async findAll(query: QueryProductDto) {
-    const { page = 1, page_size = 20, isActive } = query;
-    const skip = (Number(page) - 1) * Number(page_size);
-    const where: Record<string, any> = {};
-
-    if (typeof isActive === 'boolean') {
-      where.isActive = isActive;
-    }
+    const page =
+      Number.isFinite(Number(query.page)) && Number(query.page) > 0
+        ? Number(query.page)
+        : 1;
+    const pageSize =
+      Number.isFinite(Number(query.page_size)) && Number(query.page_size) > 0
+        ? Number(query.page_size)
+        : 20;
+    const skip = (page - 1) * pageSize;
+    const where = this.buildProductListWhere(query);
+    const orderBy = this.buildProductListOrderBy(query);
 
     const [results, count] = await Promise.all([
       this.prisma.product.findMany({
-        where: Object.keys(where).length ? where : undefined,
+        where,
         include: { images: true, category: true, brand: true },
         skip,
-        take: Number(page_size),
-        orderBy: { createdAt: 'desc' },
+        take: pageSize,
+        orderBy,
       }),
       this.prisma.product.count({
-        where: Object.keys(where).length ? where : undefined,
+        where,
       }),
     ]);
 
@@ -951,5 +955,144 @@ export class ProductsService {
         average_rating: stat?._avg?.rating ?? 0,
       };
     });
+  }
+
+  private buildProductListWhere(query: QueryProductDto) {
+    const filters: Record<string, any>[] = [];
+    const normalizedSearch =
+      typeof query.search === 'string' ? query.search.trim() : '';
+    const categoryTokens = Array.isArray(query.category)
+      ? query.category.map((entry) => String(entry).trim()).filter(Boolean)
+      : [];
+    const minPrice = Number.isFinite(Number(query.minPrice))
+      ? Number(query.minPrice)
+      : null;
+    const maxPrice = Number.isFinite(Number(query.maxPrice))
+      ? Number(query.maxPrice)
+      : null;
+
+    if (typeof query.isActive === 'boolean') {
+      filters.push({ isActive: query.isActive });
+    }
+
+    if (normalizedSearch) {
+      filters.push({
+        OR: [
+          { name: { contains: normalizedSearch, mode: 'insensitive' } },
+          {
+            shortDescription: {
+              contains: normalizedSearch,
+              mode: 'insensitive',
+            },
+          },
+          {
+            fullDescription: {
+              contains: normalizedSearch,
+              mode: 'insensitive',
+            },
+          },
+          { sku: { contains: normalizedSearch, mode: 'insensitive' } },
+          {
+            category: {
+              is: {
+                OR: [
+                  {
+                    name: {
+                      contains: normalizedSearch,
+                      mode: 'insensitive',
+                    },
+                  },
+                  {
+                    slug: {
+                      contains: normalizedSearch,
+                      mode: 'insensitive',
+                    },
+                  },
+                ],
+              },
+            },
+          },
+          {
+            brand: {
+              is: {
+                OR: [
+                  {
+                    name: {
+                      contains: normalizedSearch,
+                      mode: 'insensitive',
+                    },
+                  },
+                  {
+                    slug: {
+                      contains: normalizedSearch,
+                      mode: 'insensitive',
+                    },
+                  },
+                ],
+              },
+            },
+          },
+        ],
+      });
+    }
+
+    if (categoryTokens.length > 0) {
+      filters.push({
+        OR: categoryTokens.map((token) => ({
+          category: {
+            is: {
+              OR: [
+                { id: token },
+                { slug: { equals: token, mode: 'insensitive' } },
+                { name: { equals: token, mode: 'insensitive' } },
+              ],
+            },
+          },
+        })),
+      });
+    }
+
+    if (minPrice !== null || maxPrice !== null) {
+      const lowerBound =
+        minPrice !== null && maxPrice !== null
+          ? Math.min(minPrice, maxPrice)
+          : minPrice;
+      const upperBound =
+        minPrice !== null && maxPrice !== null
+          ? Math.max(minPrice, maxPrice)
+          : maxPrice;
+
+      filters.push({
+        price: {
+          ...(lowerBound !== null ? { gte: lowerBound } : {}),
+          ...(upperBound !== null ? { lte: upperBound } : {}),
+        },
+      });
+    }
+
+    if (filters.length === 0) {
+      return undefined;
+    }
+
+    if (filters.length === 1) {
+      return filters[0];
+    }
+
+    return { AND: filters };
+  }
+
+  private buildProductListOrderBy(query: QueryProductDto) {
+    const direction = query.sortOrder === 'asc' ? 'asc' : 'desc';
+
+    switch (query.sortBy) {
+      case 'createdAt':
+      case 'updatedAt':
+      case 'name':
+      case 'price':
+      case 'stockQuantity':
+        return { [query.sortBy]: direction };
+      default:
+        return { createdAt: 'desc' };
+    }
   }
 }
